@@ -1,0 +1,13 @@
+v ::= variable
+e ::= e e | λv.e
+
+if <e1> then <e2> else <e3>
+
+if-then-else: λg.λt.λe.g t e
+true: λt.λe.t
+false: λt.λe.e
+not: λx.if x then false else true
+
+fst: λp.p true
+snd: λp.p false
+pair:λa.λb.λg.if g then a else b
