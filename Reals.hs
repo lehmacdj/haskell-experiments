@@ -8,27 +8,28 @@ module ConstructiveReal
 
 import Text.Printf (printf)
 import Data.Ratio
+import Data.Maybe (fromMaybe)
 import qualified Data.List as L
 
 -- This is an implementation of the real number type from bishops book
 -- for some real number r represented by x:
---      (x n) + 1/10^n > r > (x n) - 1/10^n
+--      x n + 1/10^n > r > x n - 1/10^n
 -- i.e. for n; n decimal places in (x n) are accurate; this means that any
 -- real number can be evaluated as accurately as desired
 type CReal = Integer -> Rational
 
 cannonicalBound :: CReal -> Integer
-cannonicalBound x = 2 + (abs $ ceiling (x 1))
+cannonicalBound x = 2 + abs (ceiling $ x 1)
 
 instance Num CReal where
-    x + y = \n -> (x (2 * n)) + (y (2 * n))
+    x + y = \n -> x (2 * n) + y (2 * n)
     x * y =
         let k = max (cannonicalBound x) (cannonicalBound y)
-        in  \n -> (x (2 * k * n)) * (y (2 * k * n))
+        in  \n -> x (2 * k * n) * y (2 * k * n)
     negate x = negate . x
     abs x = abs . x
     signum x = signum . x
-    fromInteger i = \n -> i % 1
+    fromInteger i = \_ -> i % 1
 
 -- Find N such that |x N| > 1/N
 inverseBound :: CReal -> Integer
@@ -38,16 +39,15 @@ inverseBound x =
     let gtInvAccuracy n = a * n > b
             where a = numerator (x n)
                   b = denominator (x n)
-    in  maybe 0 id $ L.find gtInvAccuracy [1..]
+    in  fromMaybe 0 $ L.find gtInvAccuracy [1..]
 
 instance Fractional CReal where
     recip x =
-        let bound = inverseBound x
-        in  \n ->
-            if n < bound
-                then recip (x $ bound ^ 3)
-                else recip (x $ bound ^ 2)
-    fromRational r = \n -> r
+        \n -> if n < bound
+            then recip x (bound ^ 3)
+            else recip x (bound ^ 2)
+                where bound = inverseBound x
+    fromRational r = \_ -> r
 
 instance Show CReal where
     -- print with accuracy 10 ^ -5
