@@ -1,5 +1,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 
+module Scheduling where
+
 import Data.Functor.Foldable
 import Numeric.Natural
 import Data.Function (on)
