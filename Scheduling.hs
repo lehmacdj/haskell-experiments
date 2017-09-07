@@ -68,8 +68,8 @@ schedule intervals = fastSchedule (fromIntegral $ length intervals)
         fastSchedule = (`index` scheduleTree) . fromIntegral
         scheduleTree = mapTree (schedule' fastSchedule . fromIntegral) natTree
 
-scenario :: [Interval]
-scenario =
+scenario1 :: [Interval]
+scenario1 =
   [ Interval 0 3 8
   , Interval 2 5 3
   , Interval 4 7 12
@@ -79,10 +79,16 @@ scenario =
   , Interval 14 16 5
   ]
 
+scenario2 :: [Interval]
+scenario2 =
+  [ Interval 0 2 8
+  , Interval 0 2 9
+  , Interval 0 1 10
+  , Interval 0 3 11
+  , Interval 1 2 10
+  , Interval 0 2 10
+  , Interval 0 3 10
+  ]
+
 prop_natTree :: Natural -> Bool
 prop_natTree n = n `index` natTree == n
-
-main :: IO ()
-main = do
-  quickCheck prop_natTree
-  print $ show $ schedule scenario
