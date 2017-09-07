@@ -1,13 +1,15 @@
 module Primes where
 
+primes :: [Integer]
 primes = sieve [2..]
-    where sieve (p:r) = p : sieve (sift p r)
+    where sieve [] = error "empty stream"
+          sieve (p:r) = p : sieve (sift p r)
           sift p = filter ((/=0) . (`mod`p))
 
 -- miller Rabin primality taken from haskell wiki
 -- (eq. to) find2km (2^k * n) = (k,n)
 find2km :: Integral a => a -> (a,a)
-find2km n = f 0 n
+find2km = f 0
     where
         f k m
             | r == 1 = (k,m)
