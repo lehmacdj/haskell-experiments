@@ -6,6 +6,7 @@ import Data.Functor.Foldable
 import Numeric.Natural
 import Data.Function (on)
 import Data.List (sortBy, maximumBy)
+import Test.QuickCheck.Function
 
 -- memoization toolkit
 data TreeF a r = LeafF
@@ -93,5 +94,5 @@ scenario2 =
 prop_natTree :: Natural -> Bool
 prop_natTree n = n `index` natTree == n
 
-prop_mapTree :: Natural -> Bool
-prop_mapTree n = take 1000 (toList $ mapTree (+n) natTree) == map (+n) [0..999]
+prop_mapTree :: Eq b => Fun Natural b -> Bool
+prop_mapTree (Fun _ f) = take 1000 (toList $ mapTree f natTree) == map f [0..999]
