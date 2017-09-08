@@ -6,7 +6,6 @@ import Data.Functor.Foldable
 import Numeric.Natural
 import Data.Function (on)
 import Data.List (sortBy, maximumBy)
-import Test.QuickCheck
 
 -- memoization toolkit
 data TreeF a r = LeafF
