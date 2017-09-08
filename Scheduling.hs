@@ -60,7 +60,8 @@ schedule intervals = fastSchedule (fromIntegral $ length intervals)
           si = start (job n)
         -- use open recursion so that we can memoize this function
         schedule' _ 0 = []
-        schedule' mf n = maximumBy (compare `on` (sum . map weight)) [notUsing, using] where
+        schedule' mf n = maximumBy compare' [notUsing, using] where
+          compare' = compare `on` (sum . map weight)
           notUsing = mf $ n - 1
           using = job n : mf (p n)
         -- memoization table and function
