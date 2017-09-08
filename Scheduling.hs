@@ -92,3 +92,6 @@ scenario2 =
 
 prop_natTree :: Natural -> Bool
 prop_natTree n = n `index` natTree == n
+
+prop_mapTree :: Natural -> Bool
+prop_mapTree n = take 1000 (toList $ mapTree (+n) natTree) == map (+n) [0..999]
