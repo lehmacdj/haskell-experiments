@@ -19,3 +19,7 @@ interpret (p :+ q) h = interpret p h ++ interpret q h
 interpret (p :. q) h = (interpret p >=> interpret q) h
 interpret (Star p) h = concat $ iterate (\i -> interpret p >=> i) pure <*> [h]
 interpret Dup (x :| h) = [x :| x : h]
+
+-- run a program with some input packets producing all of the output packets
+runNetKAT :: NetKAT a -> [a] -> [NonEmpty a]
+runNetKAT p = (>>= interpret p) . map (:|[])
