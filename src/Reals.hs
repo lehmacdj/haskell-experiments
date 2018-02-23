@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module ConstructiveReal
+module Reals
 ( CReal
 , evaluate
 ) where

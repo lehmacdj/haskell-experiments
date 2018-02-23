@@ -1,0 +1,74 @@
+-- This file has been generated from package.yaml by hpack version 0.20.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: de1d639637c35ecc07d1e559ff4a98d5f6adbfa07c96505c011c4753a25b46e6
+
+name:           haskell-experiments
+version:        0.1.0.0
+description:    Please see the README on Github at <https://github.com/lehmacdj/xi-compiler#readme>
+homepage:       https://github.com/lehmacdj/haskell-experiments#readme
+bug-reports:    https://github.com/lehmacdj/haskell-experiments/issues
+author:         Devin Lehmacher
+copyright:      Copyright: (c) 2018
+license:        BSD3
+build-type:     Simple
+cabal-version:  >= 1.10
+
+source-repository head
+  type: git
+  location: https://github.com/lehmacdj/haskell-experiments
+
+library
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  build-depends:
+      QuickCheck
+    , ansi-wl-pprint
+    , base >=4.7 && <5
+    , bifunctors
+    , comonad
+    , containers
+    , filepath
+    , free
+    , lens
+    , megaparsec
+    , mtl
+    , optparse-applicative
+    , recursion-schemes
+    , streams
+    , tasty
+    , tasty-golden
+    , tasty-hunit
+    , tasty-quickcheck
+    , tasty-smallcheck
+    , text
+    , transformers
+    , tuple
+    , validation
+  exposed-modules:
+      Algebraic
+      BPlusTree
+      Cofree
+      Fibonacci
+      FreeState
+      LensDeriving
+      LensExtras
+      NestedComonad
+      NetKAT
+      Plated
+      PollardRho
+      PrimeList
+      Primes
+      Rationals
+      Reals
+      RecursionSchemes
+      Regex
+      Reversible
+      Scheduling
+      TuringMachine
+      YCombinator
+  other-modules:
+      Paths_haskell_experiments
+  default-language: Haskell2010

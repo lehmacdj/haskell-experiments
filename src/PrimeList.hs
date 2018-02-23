@@ -1,3 +1,5 @@
+module PrimeList where
+
 import Primes
 
 main :: IO ()

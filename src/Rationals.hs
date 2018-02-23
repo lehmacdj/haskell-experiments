@@ -1,5 +1,7 @@
 module Rationals where
 
+import Prelude hiding (Rational, gcd)
+
 data Rational = Rational Integer Integer
 
 gcd :: Integer -> Integer -> Integer
@@ -8,7 +10,7 @@ gcd a b = gcd b (a `mod` b)
 
 simplify :: Rational -> Rational
 simplify (Rational p q) =
-    Rational (p / l) (q / l)
+    Rational (p `div` l) (q `div` l)
     where
     l = gcd p q
 
@@ -37,8 +39,8 @@ instance Num Rational where
     (*) = multiplyRat
     negate = negateRat
     abs = absRat
-    signum = signumRat
-    fromInteger = fromIntegerRat
+    -- signum = signumRat
+    -- fromInteger = fromIntegerRat
 
 instance Eq Rational where
     (Rational p1 q1) == (Rational p2 q2) = p1 * q2 == p2 * q1

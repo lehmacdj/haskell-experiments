@@ -1,4 +1,4 @@
-module Rational
+module Algebraic
 ( AlgebraicNumber
 ) where
 
