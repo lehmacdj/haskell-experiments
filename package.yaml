@@ -38,6 +38,7 @@ dependencies:
 - QuickCheck
 - mtl
 - streams
+- smallcheck
 
 ghc-options:
 - -Wall

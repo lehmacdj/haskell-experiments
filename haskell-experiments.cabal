@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: de1d639637c35ecc07d1e559ff4a98d5f6adbfa07c96505c011c4753a25b46e6
+-- hash: 432f8a2d1afa3c49f46ac54f6792da40c1a6a4aa7e39577e3473e5b7bb04264b
 
 name:           haskell-experiments
 version:        0.1.0.0
@@ -37,6 +37,7 @@ library
     , mtl
     , optparse-applicative
     , recursion-schemes
+    , smallcheck
     , streams
     , tasty
     , tasty-golden
@@ -51,8 +52,10 @@ library
       Algebraic
       BPlusTree
       Cofree
+      Decorations
       Fibonacci
       FreeState
+      FTreeFlatten
       LensDeriving
       LensExtras
       NestedComonad
