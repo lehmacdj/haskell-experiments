@@ -1,0 +1,137 @@
+{-# LANGUAGE NoImplicitPrelude #-}
+
+module SignatureDish where
+
+import Prelude hiding (Word)
+
+import Control.Lens
+import Data.Char (ord)
+import Data.Either
+
+-- data Continuation = {- " " -} O | {- v -} V | {- ~ -} N
+-- type ContinuationSignature = [[Continuation]]
+--
+-- data Word = Word String [Continuation]
+--
+-- data Column = Column [Word]
+--
+-- type WordStore = [String]
+--
+-- initialLeftColumn :: Column
+-- initialLeftColumn = Column
+--     ["PREPARE"]
+--     [ [ V, N, V, O, O, O, O ]
+--     , [ V, N, N, O, O, O, O ]
+--     , [ N, N, N, O, O, O, N ]
+--     , [ N, N, V, N, O, N, O ]
+--     , [ V, V, O, N, O, O, V ]
+--     , [ N, V, O, O, V, V, V ]
+--     , [ O, V, O, V, V, O, O ]
+--     , [ V, V, O, N, N, O, O ]
+--     , [ V, O, O, O, O, O, N ]
+--     , [ N, O, O, O, O, N, V ]
+--     , [ O, O, O, N, N, N, N ]
+--     , [ O, V, N, O, O, O, N ]
+--     , [ O, N, N, O, O, O, N ]
+--     ]
+--
+-- initialMiddleColumn :: Column
+-- initialMiddleColumn = Column
+--     ["TASTYTA"]
+--     [ [ N, V, N, O, V, O, N ]
+--     , [ N, V, N, O, V, O, V ]
+--     , [ O, V, V, O, O, V, O ]
+--     , [ O, V, O, O, O, N, V ]
+--     , [ O, O, N, N, O, V, O ]
+--     , [ V, O, N, O, O, O, O ]
+--     , [ O, V, O, V, O, O, V ]
+--     , [ O, V, O, O, O, O, N ]
+--     , [ N, N, N, O, O, N, O ]
+--     , [ O, O, O, V, V, O, O ]
+--     , [ N, N, O, O, O, O, O ]
+--     , [ V, N, N, O, O, O, O ]
+--     , [ O, N, N, N, V, N, O ]
+--     ]
+--
+-- initialRightColumn :: Column
+-- initialRightColumn = Column
+--     ["SUPPERS"]
+--     [ [ V, O, O, O, V, V, V ]
+--     , [ V, O, O, O, V, O, V ]
+--     , [ V, O, N, O, O, O, O ]
+--     , [ V, V, V, V, O, O, O ]
+--     , [ O, N, N, N, O, N, N ]
+--     , [ V, N, O, O, O, O, O ]
+--     , [ O, N, N, O, N, N, O ]
+--     , [ V, O, O, O, N, O, O ]
+--     , [ O, V, O, V, O, V, V ]
+--     , [ N, V, V, O, O, O, O ]
+--     , [ O, O, V, O, O, O, O ]
+--     , [ O, V, N, N, O, O, O ]
+--     , [ O, N, O, V, O, O, O ]
+--     , [ O, V, O, O, N, O, N ]
+--     ]
+--
+-- initialWords :: [String]
+-- initialWords =
+--     [ "MAPOTOFU"
+--     , "PHO"
+--     , "FIAMBRE"
+--     , "FOIEGRAS"
+--     , "QUINDIM"
+--     , "SATAY"
+--     , "BARBACOA"
+--     , "MILLE-FEUILLE"
+--     , "KIELBASA"
+--     , "OMURICE"
+--     , "MARMALADE"
+--     , "JALEBI"
+--     , "EMPANADA"
+--     , "SLIDERS"
+--     , "JAMBALAYA"
+--     , "YAKISOBA"
+--     , "BANANA BREAD"
+--     , "MUKTUK"
+--     , "SCONES"
+--     , "UGALI"
+--     , "BAKLAVA"
+--     , "MAPLE TAFFY"
+--     , "PAVLOVA"
+--     , "PEMMICAN"
+--     , "EGG FU YUNG"
+--     , "TANDOORI CHICKEN"
+--     , "PASTY"
+--     , "JJIM"
+--     , "STROGANOFF"
+--     , "PIZZA"
+--     , "BOBOTIE"
+--     , "LUTFISK"
+--     , "NDOLE"
+--     , "STROOPWAFEL"
+--     , "HASENPFEFFER"
+--     , "PIEROGI"
+--     , "RUMBLEDETHUMPS"
+--     , "DOLMA"
+--     , "TZATZIKI"
+--     , "POLENTA"
+--     ]
+--
+-- toClueWord :: String -> String
+-- toClueWord = take 7 . cycle . filter (((&&) <$> (>=65) <*> (<=90)) . ord)
+--
+-- allWords :: [String]
+-- allWords = toClueWord <$> initialWords
+--
+-- data WordSpec = WordSpec [Maybe Char] [(Char, Int)]
+--
+-- splitChar :: Maybe Char -> Char -> Either Char Bool
+-- splitChar (Just x) y = Right (x == y)
+-- splitChar Nothing y = Left y
+--
+-- wordMatches :: WordSpec -> String -> Bool
+-- wordMatches (WordSpec required freq) word =
+--     let (notForced, goodReqs) = partitionEithers (zipWith splitChar required word)
+--      in foldr removeLetter notForced   && all goodReqs
+--
+-- addWord :: WordStore -> Column -> (WordStore, Column)
+-- addWord = undefined
