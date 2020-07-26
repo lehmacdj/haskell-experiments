@@ -6,6 +6,10 @@
   --package containers
 -}
 
+-- | Generate a minesweeper board that renders as a nice playable game in
+-- discord flavored markup.
+module Main (main) where
+
 import Control.Monad (guard)
 import Data.Char (intToDigit)
 import Data.Monoid
