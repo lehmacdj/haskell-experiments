@@ -86,8 +86,8 @@ minesToBoard mines =
 
 -- | a couple of unicode characters we need
 variationSelector16, combiningEnclosingKeycap :: Char
-variationSelector16 = head "\xFE0F"
-combiningEnclosingKeycap = head "\x20E3"
+variationSelector16 = '\xFE0F'
+combiningEnclosingKeycap = '\x20E3'
 
 -- | displays a keycapped emoji such as 3️⃣  corresponding to the given digit
 digitToKeycap :: HasCallStack => Int -> String
