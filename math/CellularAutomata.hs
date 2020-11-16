@@ -11,12 +11,14 @@
 {-# LANGUAGE LambdaCase #-}
 
 import Control.Comonad
+import Control.Monad (replicateM)
 import qualified Data.Foldable as Foldable
 import qualified Data.List as List
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty (..))
 import GHC.Generics
 import GHC.Stack
+import System.Random
 
 -- | A list that can be treated as wrapping around in a circle.
 -- NOTE: this would be much more efficient to implement in terms of a random
@@ -124,9 +126,24 @@ singleCellAlive n
   | n < 1 = error "n must be > 0"
   | otherwise = CircularList (Alive :| replicate (n - 1) Dead)
 
+randomStartingState :: HasCallStack => Int -> IO (CircularList TwoColorState)
+randomStartingState n
+  | n < 1 = error "n must be > 0"
+  | otherwise = CircularList . NE.fromList <$> replicateM n randomTwoColorState
+  where
+    randomTwoColorState = do
+      randomBool <- randomIO
+      if randomBool
+        then pure Alive
+        else pure Dead
+
 main :: IO ()
 main = do
-  print $ generateHistory rule30 40 (singleCellAlive 80)
-  print $ generateHistory rule90 40 (singleCellAlive 80)
+  randomState <- randomStartingState 207
+  print $ generateHistory rule90 100 randomState
+  print $ generateHistory rule30 100 randomState
+  print $ generateHistory rule110 100 randomState
+  print $ generateHistory rule30 100 (singleCellAlive 207)
+  print $ generateHistory rule90 100 (singleCellAlive 207)
   -- there isn't enough space here to see any interesting behavior but whatever
-  print $ generateHistory rule110 40 (singleCellAlive 80)
+  print $ generateHistory rule110 100 (singleCellAlive 207)
