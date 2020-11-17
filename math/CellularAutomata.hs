@@ -149,14 +149,14 @@ randomStartingState n
 
 toSquare :: TwoColorState -> Diagram B
 toSquare = \case
-  Dead -> fillColor black (square 1)
-  Alive -> lineWidth none $ fillColor white $ square 1
+  Dead -> lineColor black $ fillColor black $ square 1
+  Alive -> lineColor white $ fillColor white $ square 1
 
 renderRow :: CircularList TwoColorState -> Diagram B
-renderRow xs = vcat $ map toSquare $ NE.toList (backingList xs)
+renderRow xs = hcat $ map toSquare $ NE.toList (backingList xs)
 
 renderHistory :: History TwoColorState -> Diagram B
-renderHistory (History h) = hcat $ map renderRow h
+renderHistory (History h) = vcat $ map renderRow h
 
 ensureDirExists :: IO ()
 ensureDirExists = createDirectoryIfMissing True "diagrams"
@@ -178,4 +178,4 @@ main = do
   -- rendered' "rule90-random" $ generateHistory rule90 100 randomState
   -- rendered' "rule30-random" $ generateHistory rule30 100 randomState
   -- rendered' "rule110-random" $ generateHistory rule110 100 randomState
-  rendered' "rule90-simple" $ generateHistory rule90 500 $ singleCellAlive 500
+  rendered' "rule30-simple" $ generateHistory rule30 100 $ singleCellAlive 100
