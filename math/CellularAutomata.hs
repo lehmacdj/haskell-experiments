@@ -4,11 +4,18 @@
   --package random
   --package containers
   --package comonad
+  --package diagrams
+  --package diagrams-lib
+  --package diagrams-svg
+  --package directory
 -}
 
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 
 import Control.Comonad
 import Control.Monad (replicateM)
@@ -16,8 +23,11 @@ import qualified Data.Foldable as Foldable
 import qualified Data.List as List
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty (..))
+import Diagrams.Backend.SVG
+import Diagrams.Prelude hiding (index, shift)
 import GHC.Generics
 import GHC.Stack
+import System.Directory
 import System.Random
 
 -- | A list that can be treated as wrapping around in a circle.
@@ -137,13 +147,35 @@ randomStartingState n
         then pure Alive
         else pure Dead
 
+toSquare :: TwoColorState -> Diagram B
+toSquare = \case
+  Dead -> fillColor black (square 1)
+  Alive -> lineWidth none $ fillColor white $ square 1
+
+renderRow :: CircularList TwoColorState -> Diagram B
+renderRow xs = vcat $ map toSquare $ NE.toList (backingList xs)
+
+renderHistory :: History TwoColorState -> Diagram B
+renderHistory (History h) = hcat $ map renderRow h
+
+ensureDirExists :: IO ()
+ensureDirExists = createDirectoryIfMissing True "diagrams"
+
+rendered :: FilePath -> Diagram B -> IO ()
+rendered f d = ensureDirExists >> renderSVG filename (mkWidth 1000) d
+  where
+    filename = "diagrams/" ++ f ++ ".svg"
+
+rendered' :: FilePath -> History TwoColorState -> IO ()
+rendered' fp h = rendered fp (renderHistory h)
+
+draw :: Diagram B -> IO ()
+draw = rendered "tmp"
+
 main :: IO ()
 main = do
-  randomState <- randomStartingState 207
-  print $ generateHistory rule90 100 randomState
-  print $ generateHistory rule30 100 randomState
-  print $ generateHistory rule110 100 randomState
-  print $ generateHistory rule30 100 (singleCellAlive 207)
-  print $ generateHistory rule90 100 (singleCellAlive 207)
-  -- there isn't enough space here to see any interesting behavior but whatever
-  print $ generateHistory rule110 100 (singleCellAlive 207)
+  randomState <- randomStartingState 100
+  -- rendered' "rule90-random" $ generateHistory rule90 100 randomState
+  -- rendered' "rule30-random" $ generateHistory rule30 100 randomState
+  -- rendered' "rule110-random" $ generateHistory rule110 100 randomState
+  rendered' "rule90-simple" $ generateHistory rule90 500 $ singleCellAlive 500
