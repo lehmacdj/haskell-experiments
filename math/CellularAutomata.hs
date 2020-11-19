@@ -119,7 +119,7 @@ newtype History a = History {unHistory :: [CircularList a]}
 instance Show a => Show (History a) where
   show = unlines . fmap showLine . unHistory
     where
-      showLine = concat . fmap show . linearize
+      showLine = concatMap show . linearize
 
 generateHistory ::
   HasCallStack =>
