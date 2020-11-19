@@ -1,5 +1,5 @@
 #!/usr/bin/env stack
-{- stack script
+{- stack ghci
   --resolver lts-16.6
   --package random
   --package containers
@@ -36,6 +36,9 @@ import System.Random
 newtype CircularList a = CircularList {backingList :: NonEmpty a}
   deriving (Show, Read, Eq, Ord, Generic, Functor)
 
+linearize :: CircularList a -> [a]
+linearize = NE.toList . backingList
+
 -- | Apply a function n times to a given value
 -- taken from: protolude-0.3.0
 applyN :: Int -> (a -> a) -> a -> a
@@ -45,7 +48,7 @@ instance Comonad CircularList where
   extract (CircularList (x :| _)) = x
   duplicate xs = CircularList (NE.zipWith shift shifts (NE.repeat xs))
     where
-      shifts = 0 :| [1 .. NE.length (backingList xs) - 1]
+      shifts = 0 :| [1 .. length (linearize xs) - 1]
 
 -- | shift obeys the following law in interaction with index to determine which
 -- way is shifting positive vs negative:
@@ -116,7 +119,7 @@ newtype History a = History {unHistory :: [CircularList a]}
 instance Show a => Show (History a) where
   show = unlines . fmap showLine . unHistory
     where
-      showLine = concat . NE.toList . fmap show . backingList
+      showLine = concat . fmap show . linearize
 
 generateHistory ::
   HasCallStack =>
@@ -153,7 +156,7 @@ toSquare = \case
   Alive -> lineColor white $ fillColor white $ square 1
 
 renderRow :: CircularList TwoColorState -> Diagram B
-renderRow xs = hcat $ map toSquare $ NE.toList (backingList xs)
+renderRow xs = hcat $ map toSquare $ linearize xs
 
 renderHistory :: History TwoColorState -> Diagram B
 renderHistory (History h) = vcat $ map renderRow h
