@@ -1,5 +1,5 @@
 #!/usr/bin/env stack
-{- stack ghci
+{- stack script
   --resolver lts-16.6
   --package random
   --package containers
@@ -188,8 +188,4 @@ draw = rendered "tmp"
 
 main :: IO ()
 main = do
-  randomState <- randomStartingState 100
-  -- rendered' "rule90-random" $ generateHistory rule90 100 randomState
-  -- rendered' "rule30-random" $ generateHistory rule30 100 randomState
-  -- rendered' "rule110-random" $ generateHistory rule110 100 randomState
-  rendered' "rule30-simple" $ generateHistory rule30 100 $ singleCellAlive 100
+  rendered' "rule30-perf-new" $ generateHistory rule30 50 $ singleCellAlive 50
