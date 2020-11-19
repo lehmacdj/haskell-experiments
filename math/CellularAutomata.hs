@@ -8,6 +8,7 @@
   --package diagrams-lib
   --package diagrams-svg
   --package directory
+  --package array
 -}
 
 {-# LANGUAGE AllowAmbiguousTypes #-}
@@ -19,12 +20,15 @@
 
 import Control.Comonad
 import Control.Monad (replicateM)
+import Data.Array (Array, (!))
+import qualified Data.Array as Array
 import qualified Data.Foldable as Foldable
 import qualified Data.List as List
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty (..))
+import Debug.Trace
 import Diagrams.Backend.SVG
-import Diagrams.Prelude hiding (index, shift)
+import Diagrams.Prelude hiding (index, shift, trace)
 import GHC.Generics
 import GHC.Stack
 import System.Directory
@@ -33,37 +37,40 @@ import System.Random
 -- | A list that can be treated as wrapping around in a circle.
 -- NOTE: this would be much more efficient to implement in terms of a random
 -- access data structure
-newtype CircularList a = CircularList {backingList :: NonEmpty a}
+newtype CircularList a = CircularList {backingArray :: Array Int a}
   deriving (Show, Read, Eq, Ord, Generic, Functor)
 
 linearize :: CircularList a -> [a]
-linearize = NE.toList . backingList
+linearize = Array.elems . backingArray
 
--- | Apply a function n times to a given value
--- taken from: protolude-0.3.0
-applyN :: Int -> (a -> a) -> a -> a
-applyN n f = Foldable.foldr (.) id (List.replicate n f)
+arraySize :: Array Int a -> Int
+arraySize arr = case Array.bounds arr of
+  (low, high) -> high - low + 1
 
 instance Comonad CircularList where
-  extract (CircularList (x :| _)) = x
-  duplicate xs = CircularList (NE.zipWith shift shifts (NE.repeat xs))
-    where
-      shifts = 0 :| [1 .. length (linearize xs) - 1]
+  extract (CircularList arr) = arr ! fst (Array.bounds arr)
+  duplicate (CircularList arr) =
+    CircularList . Array.listArray (Array.bounds arr) $
+      [shift n (CircularList arr) | n <- [0 .. arraySize arr - 1]]
+
+traceMsgShowId :: Show a => String -> a -> a
+traceMsgShowId msg a = trace (msg ++ show a) a
 
 -- | shift obeys the following law in interaction with index to determine which
 -- way is shifting positive vs negative:
 -- index n (shift m xs) == index (n + m) xs
 shift :: HasCallStack => Int -> CircularList a -> CircularList a
-shift n (CircularList xs) = CircularList (applyN modifiedShift shiftRight1 xs)
+shift n (CircularList arr) =
+  CircularList $
+    Array.ixmap (Array.bounds arr) remapIndex arr
   where
-    modifiedShift = n `mod` NE.length xs
-    shiftRight1 xs@(_ :| []) = xs
-    shiftRight1 (x :| (x' : xs)) = x' :| xs ++ [x]
+    modifiedShift = n `mod` arraySize arr
+    remapIndex i = (i + modifiedShift) `mod` arraySize arr
 
 index :: HasCallStack => Int -> CircularList a -> a
-index n (CircularList xs) = xs NE.!! modifiedIndex
+index n (CircularList arr) = arr ! modifiedIndex
   where
-    modifiedIndex = n `mod` NE.length xs
+    modifiedIndex = n `mod` arraySize arr
 
 data TwoColorState = Dead | Alive
   deriving (Eq, Ord, Generic)
@@ -137,12 +144,16 @@ generateHistory rule n start
 singleCellAlive :: HasCallStack => Int -> CircularList TwoColorState
 singleCellAlive n
   | n < 1 = error "n must be > 0"
-  | otherwise = CircularList (Alive :| replicate (n - 1) Dead)
+  | otherwise =
+    CircularList $
+      Array.listArray (0, n - 1) (Alive : replicate (n - 1) Dead)
 
 randomStartingState :: HasCallStack => Int -> IO (CircularList TwoColorState)
 randomStartingState n
   | n < 1 = error "n must be > 0"
-  | otherwise = CircularList . NE.fromList <$> replicateM n randomTwoColorState
+  | otherwise =
+    CircularList . Array.listArray (0, n - 1)
+      <$> replicateM n randomTwoColorState
   where
     randomTwoColorState = do
       randomBool <- randomIO
