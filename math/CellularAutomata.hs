@@ -217,5 +217,5 @@ renderPng name h = do
 
 main :: IO ()
 main = do
-  startingState <- randomStartingState 1000
-  renderPng "rule110-1000x1000" $ generateHistory rule110 1000 startingState
+  startingState <- randomStartingState 10000
+  renderPng "rule110-10000x50000" $ generateHistory rule110 50000 startingState
