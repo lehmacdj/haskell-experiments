@@ -28,7 +28,8 @@ import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty (..))
 import Debug.Trace
 import Diagrams.Backend.SVG
-import Diagrams.Prelude hiding (index, shift, trace)
+import qualified Diagrams.Prelude as Diagrams
+import Diagrams.Prelude (Diagram)
 import GHC.Generics
 import GHC.Stack
 import System.Directory
@@ -163,20 +164,26 @@ randomStartingState n
 
 toSquare :: TwoColorState -> Diagram B
 toSquare = \case
-  Dead -> lineColor black $ fillColor black $ square 1
-  Alive -> lineColor white $ fillColor white $ square 1
+  Dead ->
+    Diagrams.lineColor Diagrams.black $
+      Diagrams.fillColor Diagrams.black $
+        Diagrams.square 1
+  Alive ->
+    Diagrams.lineColor Diagrams.white $
+      Diagrams.fillColor Diagrams.white $
+        Diagrams.square 1
 
 renderRow :: CircularList TwoColorState -> Diagram B
-renderRow xs = hcat $ map toSquare $ linearize xs
+renderRow xs = Diagrams.hcat $ map toSquare $ linearize xs
 
 renderHistory :: History TwoColorState -> Diagram B
-renderHistory (History h) = vcat $ map renderRow h
+renderHistory (History h) = Diagrams.vcat $ map renderRow h
 
 ensureDirExists :: IO ()
 ensureDirExists = createDirectoryIfMissing True "diagrams"
 
 rendered :: FilePath -> Diagram B -> IO ()
-rendered f d = ensureDirExists >> renderSVG filename (mkWidth 1000) d
+rendered f d = ensureDirExists >> renderSVG filename (Diagrams.mkWidth 1000) d
   where
     filename = "diagrams/" ++ f ++ ".svg"
 
@@ -188,4 +195,5 @@ draw = rendered "tmp"
 
 main :: IO ()
 main = do
-  rendered' "rule30-perf-new" $ generateHistory rule30 50 $ singleCellAlive 50
+  startingState <- randomStartingState 1000
+  rendered' "rule110-1000x1000" $ generateHistory rule110 1000 startingState
