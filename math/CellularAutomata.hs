@@ -9,6 +9,7 @@
   --package diagrams-svg
   --package directory
   --package array
+  --package JuicyPixels
 -}
 
 {-# LANGUAGE AllowAmbiguousTypes #-}
@@ -18,6 +19,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 
+import Codec.Picture
 import Control.Comonad
 import Control.Monad (replicateM)
 import Data.Array (Array, (!))
@@ -27,7 +29,8 @@ import qualified Data.List as List
 import qualified Data.List.NonEmpty as NE
 import Data.List.NonEmpty (NonEmpty (..))
 import Debug.Trace
-import Diagrams.Backend.SVG
+import qualified Diagrams.Backend.SVG as Diagrams
+import Diagrams.Backend.SVG (B)
 import qualified Diagrams.Prelude as Diagrams
 import Diagrams.Prelude (Diagram)
 import GHC.Generics
@@ -162,8 +165,8 @@ randomStartingState n
         then pure Alive
         else pure Dead
 
-toSquare :: TwoColorState -> Diagram B
-toSquare = \case
+diagramOfCell :: TwoColorState -> Diagram B
+diagramOfCell = \case
   Dead ->
     Diagrams.lineColor Diagrams.black $
       Diagrams.fillColor Diagrams.black $
@@ -173,27 +176,46 @@ toSquare = \case
       Diagrams.fillColor Diagrams.white $
         Diagrams.square 1
 
-renderRow :: CircularList TwoColorState -> Diagram B
-renderRow xs = Diagrams.hcat $ map toSquare $ linearize xs
+diagramOfRow :: CircularList TwoColorState -> Diagram B
+diagramOfRow xs = Diagrams.hcat $ map diagramOfCell $ linearize xs
 
-renderHistory :: History TwoColorState -> Diagram B
-renderHistory (History h) = Diagrams.vcat $ map renderRow h
+diagramOfHistory :: History TwoColorState -> Diagram B
+diagramOfHistory (History h) = Diagrams.vcat $ map diagramOfRow h
 
 ensureDirExists :: IO ()
-ensureDirExists = createDirectoryIfMissing True "diagrams"
+ensureDirExists = createDirectoryIfMissing True "images"
 
-rendered :: FilePath -> Diagram B -> IO ()
-rendered f d = ensureDirExists >> renderSVG filename (Diagrams.mkWidth 1000) d
+pathOfName :: String -> String -> FilePath
+pathOfName name extension = "images/" ++ name ++ "." ++ extension
+
+renderDiagramSvg :: FilePath -> Diagram B -> IO ()
+renderDiagramSvg name d = do
+  ensureDirExists
+  Diagrams.renderSVG (pathOfName name "svg") (Diagrams.mkWidth 1000) d
+
+renderSvg :: FilePath -> History TwoColorState -> IO ()
+renderSvg name h = renderDiagramSvg name (diagramOfHistory h)
+
+pixelOfCell :: TwoColorState -> Pixel8
+pixelOfCell = \case
+  Dead -> minBound
+  Alive -> maxBound
+
+imageOfHistory :: HasCallStack => History TwoColorState -> Image Pixel8
+imageOfHistory (History rows) = generateImage pixelColor width height
   where
-    filename = "diagrams/" ++ f ++ ".svg"
+    pixelColor x y = pixelOfCell $ backingArray (rows !! y) ! x
+    height = length rows
+    width
+      | height == 0 = error "no rows specified, can't determine width"
+      | otherwise = arraySize . backingArray . head $ rows
 
-rendered' :: FilePath -> History TwoColorState -> IO ()
-rendered' fp h = rendered fp (renderHistory h)
-
-draw :: Diagram B -> IO ()
-draw = rendered "tmp"
+renderPng :: FilePath -> History TwoColorState -> IO ()
+renderPng name h = do
+  ensureDirExists
+  writePng (pathOfName name "png") (imageOfHistory h)
 
 main :: IO ()
 main = do
   startingState <- randomStartingState 1000
-  rendered' "rule110-1000x1000" $ generateHistory rule110 1000 startingState
+  renderPng "rule110-1000x1000" $ generateHistory rule110 1000 startingState
