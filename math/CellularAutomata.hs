@@ -10,6 +10,8 @@
   --package directory
   --package array
   --package JuicyPixels
+  --package terminal-progress-bar
+  --package deepseq
 -}
 
 {-# LANGUAGE AllowAmbiguousTypes #-}
@@ -21,6 +23,7 @@
 
 import Codec.Picture
 import Control.Comonad
+import Control.DeepSeq
 import Control.Monad (replicateM)
 import Data.Array (Array, (!))
 import qualified Data.Array as Array
@@ -36,6 +39,7 @@ import Diagrams.Prelude (Diagram)
 import GHC.Generics
 import GHC.Stack
 import System.Directory
+import System.ProgressBar
 import System.Random
 
 -- | A list that can be treated as wrapping around in a circle.
@@ -43,6 +47,8 @@ import System.Random
 -- access data structure
 newtype CircularList a = CircularList {backingArray :: Array Int a}
   deriving (Show, Read, Eq, Ord, Generic, Functor)
+
+instance NFData a => NFData (CircularList a)
 
 linearize :: CircularList a -> [a]
 linearize = Array.elems . backingArray
@@ -78,6 +84,8 @@ index n (CircularList arr) = arr ! modifiedIndex
 
 data TwoColorState = Dead | Alive
   deriving (Eq, Ord, Generic)
+
+instance NFData TwoColorState
 
 instance Show TwoColorState where
   show Dead = " "
@@ -126,6 +134,8 @@ stepAutomata rule = extend (rule . neighborhood)
 
 newtype History a = History {unHistory :: [CircularList a]}
   deriving (Eq, Ord, Generic)
+
+instance NFData a => NFData (History a)
 
 instance Show a => Show (History a) where
   show = unlines . fmap showLine . unHistory
@@ -210,12 +220,30 @@ imageOfHistory (History rows) = generateImage pixelColor width height
       | height == 0 = error "no rows specified, can't determine width"
       | otherwise = arraySize . backingArray . head $ rows
 
+imageOfHistoryWithProgress ::
+  HasCallStack =>
+  History TwoColorState ->
+  IO (Image Pixel8)
+imageOfHistoryWithProgress (History rows) = do
+  pb <- newProgressBar defStyle 10 (Progress 0 (height * width) ())
+  withImage width height (colorPixel pb)
+  where
+    colorPixel pb x y = do
+      let pixel = pixelOfCell $ backingArray (rows !! y) ! x
+      pixel `deepseq` incProgress pb 1
+      pure pixel
+    height = length rows
+    width
+      | height == 0 = error "no rows specified, can't determine width"
+      | otherwise = arraySize . backingArray . head $ rows
+
 renderPng :: FilePath -> History TwoColorState -> IO ()
 renderPng name h = do
   ensureDirExists
-  writePng (pathOfName name "png") (imageOfHistory h)
+  image <- imageOfHistoryWithProgress h
+  writePng (pathOfName name "png") image
 
 main :: IO ()
 main = do
-  startingState <- randomStartingState 10000
-  renderPng "rule110-10000x50000" $ generateHistory rule110 50000 startingState
+  startingState <- randomStartingState 500
+  renderPng "tmp" $ generateHistory rule110 500 startingState
