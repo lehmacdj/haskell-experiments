@@ -1,5 +1,6 @@
 #!/usr/bin/env stack
 {- stack script
+  --optimize
   --resolver lts-16.6
   --package random
   --package containers
