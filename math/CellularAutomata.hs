@@ -268,4 +268,4 @@ renderPng name h = do
 main :: IO ()
 main = do
   startingState <- randomStartingState 100
-  renderPng "rule110-5000x10000-new" $ generateHistory rule90 1000 (singleCellAlive 1000)
+  renderPng "rule110-5000x10000-new" $ generateHistory rule110 10000 startingState
