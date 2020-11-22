@@ -22,6 +22,8 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 
+module Main (main) where
+
 import Codec.Picture
 import Control.Comonad
 import Control.DeepSeq
