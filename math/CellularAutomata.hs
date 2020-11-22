@@ -220,6 +220,10 @@ imageOfHistory (History rows) = generateImage pixelColor width height
       | height == 0 = error "no rows specified, can't determine width"
       | otherwise = arraySize . backingArray . head $ rows
 
+-- | Display a progress bar while rendering an image of a History.
+-- This has a small performance impact on the resulting program:
+-- 34.680s runtime instead 32.341s runtime for
+-- generateHistory rule110 500 <$> randomStartingState 500
 imageOfHistoryWithProgress ::
   HasCallStack =>
   History TwoColorState ->
