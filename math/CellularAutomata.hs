@@ -223,8 +223,10 @@ imageOfHistory (History rows) = generateImage pixelColor width height
 
 -- | Display a progress bar while rendering an image of a History.
 -- This has a small performance impact on the resulting program:
--- 34.680s runtime instead 32.341s runtime for
+-- 34.680s runtime instead of 32.341s runtime for
 -- generateHistory rule110 500 <$> randomStartingState 500
+-- This has a slightly larger impact when running optimized:
+-- 17.442s runtime instead of 13.246s runtime for the same program.
 imageOfHistoryWithProgress ::
   HasCallStack =>
   History TwoColorState ->
