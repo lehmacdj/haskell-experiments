@@ -1,6 +1,6 @@
 #!/usr/bin/env stack
-{- stack script
-  --optimize
+{- stack
+  script --optimize
   --resolver lts-16.6
   --package random
   --package containers
@@ -46,25 +46,32 @@ import System.ProgressBar
 import System.Random
 
 -- | A list that can be treated as wrapping around in a circle.
--- NOTE: this would be much more efficient to implement in terms of a random
--- access data structure
-newtype CircularList a = CircularList {backingArray :: Array Int a}
+--
+-- This uses Int instead of Integer for performance reasons.
+-- this is fine as long as we never try generating runs of automata with
+-- more than (maxBound :: Int) / 2 cells, which seems like a pretty
+-- reasonable assumption to make
+data CircularList a = CircularList
+  { -- The offset of the array. Indexing the array adds this offset to the index
+    indexOffset :: !Int,
+    backingArray :: Array Int a
+  }
   deriving (Show, Read, Eq, Ord, Generic, Functor)
 
 instance NFData a => NFData (CircularList a)
 
 linearize :: CircularList a -> [a]
-linearize = Array.elems . backingArray
+linearize cl = [index ix cl | ix <- [0 .. arraySize (backingArray cl)]]
 
 arraySize :: Array Int a -> Int
 arraySize arr = case Array.bounds arr of
   (low, high) -> high - low + 1
 
 instance Comonad CircularList where
-  extract (CircularList arr) = arr ! fst (Array.bounds arr)
-  duplicate (CircularList arr) =
-    CircularList . Array.listArray (Array.bounds arr) $
-      [shift n (CircularList arr) | n <- [0 .. arraySize arr - 1]]
+  extract = index 0
+  duplicate (CircularList offset arr) =
+    CircularList offset . Array.listArray (Array.bounds arr) $
+      [shift n (CircularList offset arr) | n <- [0 .. arraySize arr - 1]]
 
 traceMsgShowId :: Show a => String -> a -> a
 traceMsgShowId msg a = trace (msg ++ show a) a
@@ -73,17 +80,14 @@ traceMsgShowId msg a = trace (msg ++ show a) a
 -- way is shifting positive vs negative:
 -- index n (shift m xs) == index (n + m) xs
 shift :: HasCallStack => Int -> CircularList a -> CircularList a
-shift n (CircularList arr) =
-  CircularList $
-    Array.ixmap (Array.bounds arr) remapIndex arr
+shift n (CircularList offset arr) = CircularList modifiedOffset arr
   where
-    modifiedShift = n `mod` arraySize arr
-    remapIndex i = (i + modifiedShift) `mod` arraySize arr
+    modifiedOffset = (offset + n) `mod` arraySize arr
 
 index :: HasCallStack => Int -> CircularList a -> a
-index n (CircularList arr) = arr ! modifiedIndex
+index n (CircularList offset arr) = arr ! modifiedIndex
   where
-    modifiedIndex = n `mod` arraySize arr
+    modifiedIndex = (n + offset) `mod` arraySize arr
 
 data TwoColorState = Dead | Alive
   deriving (Eq, Ord, Generic)
@@ -157,19 +161,28 @@ generateHistory rule n start
 
 -- | Starting state where only the element extracted by the comonad instance
 -- is alive and every other cell is dead. List has the specified length.
+-- The alive cell is exactly in the center if the param is odd, and as close as
+-- possible to it if it is even
 -- errors if n < 1 since the list must be non-empty
 singleCellAlive :: HasCallStack => Int -> CircularList TwoColorState
 singleCellAlive n
   | n < 1 = error "n must be > 0"
   | otherwise =
-    CircularList $
-      Array.listArray (0, n - 1) (Alive : replicate (n - 1) Dead)
+    -- put the first cell in the center so that activity radiates out from
+    -- the center instead of from one of the edges
+    CircularList 0 $
+      Array.listArray
+        (0, n - 1)
+        ( replicate ((n - 1) `div` 2) Dead
+            ++ [Alive]
+            ++ replicate (n `div` 2) Dead
+        )
 
 randomStartingState :: HasCallStack => Int -> IO (CircularList TwoColorState)
 randomStartingState n
   | n < 1 = error "n must be > 0"
   | otherwise =
-    CircularList . Array.listArray (0, n - 1)
+    CircularList 0 . Array.listArray (0, n - 1)
       <$> replicateM n randomTwoColorState
   where
     randomTwoColorState = do
@@ -217,7 +230,7 @@ pixelOfCell = \case
 imageOfHistory :: HasCallStack => History TwoColorState -> Image Pixel8
 imageOfHistory (History rows) = generateImage pixelColor width height
   where
-    pixelColor x y = pixelOfCell $ backingArray (rows !! y) ! x
+    pixelColor x y = pixelOfCell $ index x (rows !! y)
     height = length rows
     width
       | height == 0 = error "no rows specified, can't determine width"
@@ -238,7 +251,7 @@ imageOfHistoryWithProgress (History rows) = do
   withImage width height (colorPixel pb)
   where
     colorPixel pb x y = do
-      let pixel = pixelOfCell $ backingArray (rows !! y) ! x
+      let pixel = pixelOfCell $ index x (rows !! y)
       pixel `deepseq` incProgress pb 1
       pure pixel
     height = length rows
@@ -254,5 +267,5 @@ renderPng name h = do
 
 main :: IO ()
 main = do
-  startingState <- randomStartingState 500
-  renderPng "tmp" $ generateHistory rule110 500 startingState
+  startingState <- randomStartingState 100
+  renderPng "rule110-5000x10000-new" $ generateHistory rule90 1000 (singleCellAlive 1000)
