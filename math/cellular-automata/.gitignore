@@ -1,4 +1,9 @@
 images/
+*.cabal
+
+# profiling ouput
+*.svg
+*.prof
 
 # exes
 CellularAutomata
