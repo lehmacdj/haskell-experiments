@@ -1,10 +1,10 @@
 name:                cellular-automata
 version:             0.1.0.0
-github:              "lehmacdj/cellular-automata"
+github:              "lehmacdj/experiments"
 license:             BSD3
 author:              "Devin Lehmacher"
 maintainer:          "lehmacdj@gmail.com"
-copyright:           "Copyright: (c) 2017 Devin Lehmacher"
+copyright:           "Copyright: (c) 2020 Devin Lehmacher"
 
 extra-source-files:
 - README.md
@@ -17,10 +17,21 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/lehmacdj/cellular-automata#readme>
+description:         Please see the README on GitHub at <https://github.com/lehmacdj/experiments#readme>
 
 dependencies:
 - base >= 4.7 && < 5
+- JuicyPixels
+- array
+- comonad
+- containers
+- deepseq
+- diagrams
+- diagrams-lib
+- diagrams-svg
+- directory
+- random
+- terminal-progress-bar
 
 library:
   source-dirs: src
@@ -33,6 +44,7 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -O2
     dependencies:
     - cellular-automata
 
