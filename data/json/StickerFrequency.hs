@@ -1,5 +1,5 @@
 #!/usr/bin/env stack
-{- stack ghci
+{- stack script
     --resolver lts-16.26
     --package aeson
     --package lens
