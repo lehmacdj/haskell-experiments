@@ -1,0 +1,4 @@
+# xml files are left out because they might contain personal data
+*.xml
+# .txt files are sometimes an output format of scripts here
+*.txt
