@@ -10,13 +10,42 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Main where
 
 import ClassyPrelude
 import Codec.Picture
 import Data.Monoid (Sum (..))
+import Data.Group
 import System.Directory
+
+data Sn = Sigma
+  { sigma :: Int -> Int
+  , n :: Int
+  }
+
+instance Show Sn where
+  show Sigma{..} = show $ fmap sigma [0 .. (n - 1)]
+
+data Z2 = Zero | One
+  deriving (Show,Eq,Ord)
+
+instance Semigroup Z2 where
+  Zero <> x = x
+  x <> Zero = x
+  One <> One = Zero
+
+instance Monoid Z2 where
+  mempty = Zero
+
+instance Group Z2 where
+  invert x = x
+
+instance Colorable Z2 where
+  colorOf Zero = PixelRGBA16 0 0 0 0
+  colorOf _ = PixelRGBA16 maxBound maxBound maxBound maxBound
 
 class Colorable m where
   colorOf :: m -> PixelRGBA16
@@ -46,5 +75,5 @@ instance Colorable (Sum Int) where
 
 main :: IO ()
 main = do
-  render @(Sum Int) "Int-Test" [0, 1, 2]
+  render "Z2-Test" [Zero, One]
   pure ()
