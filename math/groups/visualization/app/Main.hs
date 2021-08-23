@@ -94,17 +94,15 @@ instance Monoid Z2 where
 instance Group Z2 where
   invert x = x
 
-mkImage :: forall m px. (Pixel px, Show m, Monoid m, Ord m) => [(m, px)] -> Image px
-mkImage es = generateImage pixelAt width height
+type Z = Sum Integer
+
+mkImage :: forall m px. (Pixel px, Show m, Monoid m, Ord m)
+        => [m] -> (m -> px) -> Image px
+mkImage es toColor = generateImage pixelAt width height
   where
-    cmap :: Map m px
-    cmap = mapFromList es
-    toColor m =
-      fromMaybe (error ("don't have color for " ++ show m)) $ lookup m cmap
     width = length es
     height = width
-    es' = fmap fst es
-    pixelAt x y = toColor $ (es' `indexEx` x) <> (es' `indexEx` y)
+    pixelAt x y = toColor $ (es `indexEx` x) <> (es `indexEx` y)
 
 ensureDirExists :: IO ()
 ensureDirExists = createDirectoryIfMissing True "images"
@@ -113,40 +111,52 @@ pathOfName :: String -> String -> FilePath
 pathOfName name extension = "images/" ++ name ++ "." ++ extension
 
 render ::
+  forall m px.
   (Pixel px, PngSavable px, Show m, Monoid m, Ord m) =>
   FilePath ->
-  [(m, px)] ->
+  [m] ->
+  (m -> px) ->
   IO ()
-render name es = do
+render name es toColor = do
   ensureDirExists
-  let image = mkImage es
+  let image = mkImage es toColor
   writePng (pathOfName name "png") image
 
 black, white :: PixelRGBA16
 black = PixelRGBA16 0 0 0 maxBound
 white = PixelRGBA16 maxBound maxBound maxBound maxBound
 
-greyscaled :: [a] -> [(a, Pixel16)]
-greyscaled xs =
-  runIdentity $
-    itraverse
-      ( \i x ->
-          Identity
-            ( x,
-              let frac = fromIntegral i / fromIntegral len
-                  full = fromIntegral (maxBound :: Word16) :: Double
-               in round (frac * full)
-            )
-      )
-      xs
+greyscaled :: forall a. Ord a => [a] -> a -> PixelRGB16
+greyscaled xs x = fromMaybe (PixelRGB16 maxBound 0 0) $ lookup x cmap
   where
     len
       | null xs = 1
       | otherwise = length xs - 1
+    cmap :: Map a PixelRGB16
+    cmap = mapFromList . runIdentity $
+        itraverse
+          ( \i x ->
+              Identity
+                ( x,
+                  let frac = fromIntegral i / fromIntegral len
+                      full = fromIntegral (maxBound :: Word16) :: Double
+                      v = round (frac * full)
+                   in PixelRGB16 v v v
+                )
+          )
+          xs
 
 renderSnLexicographic :: Int -> IO ()
 renderSnLexicographic n =
-  render ("S" ++ show n ++ "-LexicographicOrder") (greyscaled . sort $ snElems n)
+  let es = sort $ snElems n
+   in render ("S" ++ show n ++ "-LexicographicOrder") es (greyscaled es)
+
+renderZ :: Integer -> IO ()
+renderZ n =
+  render @Z
+    ("First" ++ show n ++ "-Z")
+    (Sum <$> [0 .. n - 1])
+    (greyscaled (Sum <$> [0 .. 2 * n]))
 
 main :: IO ()
 main = do
