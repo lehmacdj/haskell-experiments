@@ -1,5 +1,5 @@
 #!/usr/bin/env stack
-{- stack ghci
+{- stack script --optimize
     --resolver lts-18.6
     --package groups
     --package JuicyPixels
@@ -87,8 +87,8 @@ instance Eq Sn where
 instance Ord Sn where
   compare = compare `on` show
 
-s4Elems :: [Sn]
-s4Elems = perm <$> permutations [0 .. 3]
+snElems :: Int -> [Sn]
+snElems n = perm <$> permutations [0 .. n]
 
 data Z2 = Zero | One
   deriving (Show, Eq, Ord)
@@ -154,8 +154,11 @@ greyscaled xs =
       | null xs = 1
       | otherwise = length xs - 1
 
+renderSnLexicographic :: Int -> IO ()
+renderSnLexicographic n = 
+  render ("S" ++ show n ++ "-LexicographicOrder") (greyscaled . sort $ snElems n)
+
 main :: IO ()
 main = do
-  render "Z2-Greyscaled" (greyscaled [Zero, One])
-  render "S4-LexicographicOrder" (greyscaled (sort s4Elems))
+  renderSnLexicographic 6
   pure ()
