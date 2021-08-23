@@ -13,6 +13,8 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
@@ -45,8 +47,10 @@ data Sn = Sigma
 instance Show Sn where
   showsPrec p = \case
     Sigma {n=Nothing, ..} -> showString "identity"
-    Sigma {n=Just n, ..} -> showParen (p > 10) $ 
-      showString "perm " . showsPrec 11 (fmap sigma [0 .. (n - 1)])
+    e@Sigma {n=Just n, ..}
+      | e == mempty -> showString "identity"
+      | otherwise -> showParen (p > 10) $
+          showString "perm " . showsPrec 11 (fmap sigma [0 .. (n - 1)])
 
 instance Semigroup Sn where
   Sigma {..} <> Sigma {sigma=sigma', n=n'}
@@ -75,6 +79,9 @@ instance Eq Sn where
   Sigma {n = Just n, sigma = sigma} == Sigma {n = Nothing}
     = fmap sigma [0 .. n-1] == [0 .. n-1]
 
+instance Ord Sn where
+  compare = compare `on` show
+
 s4Elems :: [Sn]
 s4Elems = perm <$> permutations [0 .. 3]
 
@@ -92,19 +99,17 @@ instance Monoid Z2 where
 instance Group Z2 where
   invert x = x
 
-instance Colorable Z2 where
-  colorOf Zero = PixelRGBA16 0 0 0 0
-  colorOf _ = PixelRGBA16 maxBound maxBound maxBound maxBound
-
-class Colorable m where
-  colorOf :: m -> PixelRGBA16
-
-mkImage :: (Pixel px, Monoid m) => [m] -> (m -> px) -> Image px
-mkImage es toColor = generateImage pixelAt width height
+mkImage :: forall m px. (Pixel px, Show m, Monoid m, Ord m) => [(m, px)] -> Image px
+mkImage es = generateImage pixelAt width height
   where
+    cmap :: Map m px
+    cmap = mapFromList es
+    toColor m =
+      fromMaybe (error ("don't have color for " ++ show m)) $ lookup m cmap
     width = length es
     height = width
-    pixelAt x y = toColor $ (es `indexEx` x) <> (es `indexEx` y)
+    es' = fmap fst es
+    pixelAt x y = toColor $ (es' `indexEx` x) <> (es' `indexEx` y)
 
 ensureDirExists :: IO ()
 ensureDirExists = createDirectoryIfMissing True "images"
@@ -112,18 +117,18 @@ ensureDirExists = createDirectoryIfMissing True "images"
 pathOfName :: String -> String -> FilePath
 pathOfName name extension = "images/" ++ name ++ "." ++ extension
 
-render :: (Colorable m, Monoid m) => FilePath -> [m] -> IO ()
+render :: (Show m, Monoid m, Ord m) => FilePath -> [(m, PixelRGBA16)] -> IO ()
 render name es = do
   ensureDirExists
-  let image = mkImage es colorOf
+  let image = mkImage es
   writePng (pathOfName name "png") image
 
-instance Colorable (Sum Int) where
-  colorOf (Sum 0) = PixelRGBA16 0 0 0 0
-  colorOf _ = PixelRGBA16 maxBound maxBound maxBound maxBound
+black, white :: PixelRGBA16
+black = PixelRGBA16 0 0 0 maxBound
+white = PixelRGBA16 maxBound maxBound maxBound maxBound
 
 main :: IO ()
 main = do
-  render "Z2-Test" [Zero, One]
+  render "Z2-Test" [(Zero, black), (One, white)]
   -- render "S4-LexicographicOrder" s4Elems
   pure ()
