@@ -1,13 +1,3 @@
-#!/usr/bin/env stack
-{- stack script --optimize
-    --resolver lts-18.6
-    --package groups
-    --package JuicyPixels
-    --package directory
-    --package classy-prelude
-    --package lens
- -}
-
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -155,10 +145,10 @@ greyscaled xs =
       | otherwise = length xs - 1
 
 renderSnLexicographic :: Int -> IO ()
-renderSnLexicographic n = 
+renderSnLexicographic n =
   render ("S" ++ show n ++ "-LexicographicOrder") (greyscaled . sort $ snElems n)
 
 main :: IO ()
 main = do
-  renderSnLexicographic 6
+  renderSnLexicographic 5
   pure ()
