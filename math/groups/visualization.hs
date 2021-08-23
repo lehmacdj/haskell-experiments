@@ -150,7 +150,9 @@ greyscaled xs =
       )
       xs
   where
-    len = length xs
+    len
+      | null xs = 1
+      | otherwise = length xs - 1
 
 main :: IO ()
 main = do
