@@ -8,29 +8,43 @@
  -}
 
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE NamedFieldPuns #-}
 
 module Main where
 
 import ClassyPrelude
 import Codec.Picture
-import Data.Monoid (Sum (..))
 import Data.Group
+import Data.Monoid (Sum (..))
+import GHC.Stack (HasCallStack)
 import System.Directory
 
+perm :: HasCallStack => [Int] -> Sn
+perm xs
+  | not isValid = error "invalid indices specified for permutation"
+  | otherwise = Sigma (\i -> unwrap $ lookup i m) len
+  where
+    isValid = all (\x -> x < len && x >= 0) xs && ordNub xs == xs
+    unwrap :: HasCallStack => Maybe a -> a
+    unwrap = fromMaybe (error "invalid index for permutation")
+    m :: IntMap Int
+    m = mapFromList $ [0 .. l] `zip` xs
+    l = len - 1
+    len = length xs
+
 data Sn = Sigma
-  { sigma :: Int -> Int
-  , n :: Int
+  { sigma :: Int -> Int,
+    n :: Int
   }
 
 instance Show Sn where
-  show Sigma{..} = show $ fmap sigma [0 .. (n - 1)]
+  show Sigma {..} = show $ fmap sigma [0 .. (n - 1)]
 
 data Z2 = Zero | One
-  deriving (Show,Eq,Ord)
+  deriving (Show, Eq, Ord)
 
 instance Semigroup Z2 where
   Zero <> x = x
