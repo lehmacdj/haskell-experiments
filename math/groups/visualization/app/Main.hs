@@ -7,6 +7,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE BlockArguments #-}
 
 module Main where
 
@@ -20,6 +21,9 @@ import Data.Word (Word16)
 import GHC.Stack (HasCallStack)
 import System.Directory
 import Prelude (showParen, showString)
+import Data.Sequence (Seq(..))
+import qualified Data.Sequence as Seq
+import Control.Monad.Logic.Class
 
 perm :: HasCallStack => [Int] -> Sn
 perm xs
@@ -97,6 +101,57 @@ instance Group Z2 where
 
 type Z = Sum Integer
 
+data Symbol a = Normal a | Inverted a
+  deriving (Show, Eq, Ord)
+
+isNormal, isInverted :: Symbol a -> Bool
+isNormal = \case
+  Normal _ -> True
+  Inverted _ -> False
+isInverted = not . isNormal
+
+reduces :: Eq a => Symbol a -> Symbol a -> Bool
+reduces (Normal x) (Inverted x') | x == x' = True
+reduces (Inverted x) (Normal x') | x == x' = True
+reduces _ _ = False
+
+newtype FG a = Word { getSymbols :: Seq (Symbol a) }
+  deriving (Show, Eq, Ord)
+
+instance Eq a => Semigroup (FG a) where
+  Word xs'@(xs :|> x) <> Word ys'@(y :<| ys) = case (x, y) of
+    (Normal _, Normal _) -> Word (xs' <> ys')
+    (Inverted _, Inverted _) -> Word (xs' <> ys')
+    (Normal x, Inverted y)
+      | x == y -> Word xs <> Word ys
+      | otherwise -> Word (xs' <> ys')
+    (Inverted x, Normal y)
+      | x == y -> Word xs <> Word ys
+      | otherwise -> Word (xs' <> ys')
+  Word xs <> Word ys = Word (xs <> ys)
+
+-- | Given a list of symbols; generate all words that draw from it.
+freeElements :: Eq a => [a] -> [FG a]
+freeElements xs = Word mempty : do
+  xs >>- \x ->
+    [Normal x, Inverted x] >>- \symbol ->
+      freeElements xs >>= \case
+        Word Empty -> pure $ Word (pure symbol)
+        Word ys@(_ :|> y) -> do
+          guard (not (reduces symbol y))
+          pure $ Word (ys :|> symbol)
+
+instance Eq a => Monoid (FG a) where
+  mempty = Word (mempty)
+
+invertSymbol :: Symbol a -> Symbol a
+invertSymbol = \case
+  Normal a -> Inverted a
+  Inverted a -> Normal a
+
+instance Eq a => Group (FG a) where
+  invert (Word xs) = Word $ invertSymbol <$> reverse xs
+
 mkImage :: forall m px. (Pixel px, Show m, Monoid m, Ord m)
         => [m] -> (m -> px) -> Image px
 mkImage es toColor = generateImage pixelAt width height
@@ -159,7 +214,14 @@ renderZ n =
     (Sum <$> [0 .. n - 1])
     (greyscaled (Sum <$> [0 .. 2 * n]))
 
+renderFree :: (Show a, Ord a) => [a] -> Int -> IO ()
+renderFree generators n =
+  render
+    ("FreeGroupOn-" ++ show generators ++ "-First-" ++ show n)
+    (take n (freeElements generators))
+    (greyscaled (take (n ^ 2) (freeElements generators)))
+
 main :: IO ()
 main = do
-  renderSnLexicographic 5
+  renderFree [True, False] 20
   say "Done!"

@@ -22,10 +22,12 @@ description:         Please see the README on GitHub at <https://github.com/lehm
 dependencies:
 - base >= 4.7 && < 5
 - classy-prelude
+- containers
 - directory
 - groups
 - JuicyPixels
 - lens
+- logict
 
 library:
   source-dirs: src

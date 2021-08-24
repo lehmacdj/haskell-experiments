@@ -34,9 +34,11 @@ library
       JuicyPixels
     , base >=4.7 && <5
     , classy-prelude
+    , containers
     , directory
     , groups
     , lens
+    , logict
   default-language: Haskell2010
 
 executable visualization
@@ -50,9 +52,11 @@ executable visualization
       JuicyPixels
     , base >=4.7 && <5
     , classy-prelude
+    , containers
     , directory
     , groups
     , lens
+    , logict
     , visualization
   default-language: Haskell2010
 
@@ -68,8 +72,10 @@ test-suite visualization-test
       JuicyPixels
     , base >=4.7 && <5
     , classy-prelude
+    , containers
     , directory
     , groups
     , lens
+    , logict
     , visualization
   default-language: Haskell2010
