@@ -157,7 +157,7 @@ freeElements xs =
             pure $ Word (ys :|> symbol)
 
 instance Eq a => Monoid (FG a) where
-  mempty = Word (mempty)
+  mempty = Word mempty
 
 wordLength :: FG a -> Int
 wordLength = length . getSymbols
@@ -249,7 +249,7 @@ renderFree generators n =
     (gradedColoring (2 * maxLenEs))
   where
     freeGroup = freeElements generators
-    es = take n freeGroup
+    es = sort $ take n freeGroup
     maxLenEs = maximum (1 `ncons` fmap wordLength es)
 
 main :: IO ()
