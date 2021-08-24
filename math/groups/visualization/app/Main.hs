@@ -144,6 +144,9 @@ freeElements xs = Word mempty : do
 instance Eq a => Monoid (FG a) where
   mempty = Word (mempty)
 
+wordLength :: FG a -> Int
+wordLength = length . getSymbols
+
 invertSymbol :: Symbol a -> Symbol a
 invertSymbol = \case
   Normal a -> Inverted a
@@ -178,29 +181,34 @@ render name es toColor = do
   let image = mkImage es toColor
   writePng (pathOfName name "png") image
 
-black, white :: PixelRGBA16
-black = PixelRGBA16 0 0 0 maxBound
-white = PixelRGBA16 maxBound maxBound maxBound maxBound
+black, white, red :: PixelRGB16
+black = PixelRGB16 0 0 0
+white = PixelRGB16 maxBound maxBound maxBound
+red = PixelRGB16 maxBound 0 0
+
+greyValue :: Int -> Int -> PixelRGB16
+greyValue i m =
+  let frac = fromIntegral i / fromIntegral m
+      full = fromIntegral (maxBound :: Word16) :: Double
+      v = round (frac * full)
+      result
+        | frac > 1 = red
+        | otherwise = PixelRGB16 v v v
+   in result
 
 greyscaled :: forall a. Ord a => [a] -> a -> PixelRGB16
-greyscaled xs x = fromMaybe (PixelRGB16 maxBound 0 0) $ lookup x cmap
+greyscaled xs x = fromMaybe (red) $ lookup x cmap
   where
     len
       | null xs = 1
       | otherwise = length xs - 1
     cmap :: Map a PixelRGB16
-    cmap = mapFromList . runIdentity $
-        itraverse
-          ( \i x ->
-              Identity
-                ( x,
-                  let frac = fromIntegral i / fromIntegral len
-                      full = fromIntegral (maxBound :: Word16) :: Double
-                      v = round (frac * full)
-                   in PixelRGB16 v v v
-                )
-          )
-          xs
+    cmap =
+      mapFromList . runIdentity $
+        itraverse (\i x -> Identity (x, greyValue i len)) xs
+
+gradedColoring :: Int -> FG a -> PixelRGB16
+gradedColoring maxLength x = greyValue (wordLength x) maxLength
 
 renderSnLexicographic :: Int -> IO ()
 renderSnLexicographic n =
@@ -218,8 +226,13 @@ renderFree :: (Show a, Ord a) => [a] -> Int -> IO ()
 renderFree generators n =
   render
     ("FreeGroupOn-" ++ show generators ++ "-First-" ++ show n)
-    (take n (freeElements generators))
-    (greyscaled (take (n ^ 2) (freeElements generators)))
+    es
+    (gradedColoring (2 * maxLenEs))
+  where
+    freeGroup = freeElements generators
+    es = take n freeGroup
+    maxLenEs = maximum (1 `ncons` fmap wordLength es)
+--    (greyscaled (take (n ^ 2) (freeElements generators)))
 
 main :: IO ()
 main = do
