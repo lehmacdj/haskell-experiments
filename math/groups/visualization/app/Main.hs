@@ -130,7 +130,10 @@ reduces (Inverted x) (Normal x') | x == x' = True
 reduces _ _ = False
 
 newtype FG a = Word {getSymbols :: Seq (Symbol a)}
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq)
+
+instance Ord a => Ord (FG a) where
+  compare = compare `on` (\(Word xs) -> (length xs, xs))
 
 instance Eq a => Semigroup (FG a) where
   Word xs'@(xs :|> x) <> Word ys'@(y :<| ys) = case (x, y) of
