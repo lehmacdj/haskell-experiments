@@ -1,2 +1,4 @@
 images/
 *.cabal
+# output files produced by profiling
+visualization.*
