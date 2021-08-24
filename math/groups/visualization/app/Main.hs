@@ -1,3 +1,4 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
@@ -7,7 +8,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE BlockArguments #-}
 
 module Main where
 
@@ -15,15 +15,15 @@ import ClassyPrelude
 import Codec.Picture
 import Codec.Picture.Types (Pixel16 (..))
 import Control.Lens (itraverse)
+import Control.Monad.Logic.Class
 import Data.Group
 import Data.Monoid (Sum (..))
+import Data.Sequence (Seq (..))
+import qualified Data.Sequence as Seq
 import Data.Word (Word16)
 import GHC.Stack (HasCallStack)
 import System.Directory
 import Prelude (showParen, showString)
-import Data.Sequence (Seq(..))
-import qualified Data.Sequence as Seq
-import Control.Monad.Logic.Class
 
 perm :: HasCallStack => [Int] -> Sn
 perm xs
@@ -42,6 +42,20 @@ data Sn = Sigma
   { sigma :: Int -> Int,
     n :: Maybe Int
   }
+
+getPerm :: Sn -> [Int]
+getPerm Sigma {..} =
+  let r = sigma <$> [0 .. fromMaybe 0 n - 1]
+   in if isJust $
+        foldl'
+          ( \a x -> case a of
+              Just x' | x == x' -> Just $ x + 1
+              _ -> Nothing
+          )
+          (Just 0)
+          r
+        then []
+        else r
 
 instance Show Sn where
   showsPrec p = \case
@@ -80,7 +94,7 @@ instance Eq Sn where
     fmap sigma [0 .. n -1] == [0 .. n -1]
 
 instance Ord Sn where
-  compare = compare `on` show
+  compare = compare `on` getPerm
 
 snElems :: Int -> [Sn]
 snElems n = perm <$> permutations [0 .. n]
@@ -115,7 +129,7 @@ reduces (Normal x) (Inverted x') | x == x' = True
 reduces (Inverted x) (Normal x') | x == x' = True
 reduces _ _ = False
 
-newtype FG a = Word { getSymbols :: Seq (Symbol a) }
+newtype FG a = Word {getSymbols :: Seq (Symbol a)}
   deriving (Show, Eq, Ord)
 
 instance Eq a => Semigroup (FG a) where
@@ -132,14 +146,15 @@ instance Eq a => Semigroup (FG a) where
 
 -- | Given a list of symbols; generate all words that draw from it.
 freeElements :: Eq a => [a] -> [FG a]
-freeElements xs = Word mempty : do
-  xs >>- \x ->
-    [Normal x, Inverted x] >>- \symbol ->
-      freeElements xs >>= \case
-        Word Empty -> pure $ Word (pure symbol)
-        Word ys@(_ :|> y) -> do
-          guard (not (reduces symbol y))
-          pure $ Word (ys :|> symbol)
+freeElements xs =
+  Word mempty : do
+    xs >>- \x ->
+      [Normal x, Inverted x] >>- \symbol ->
+        freeElements xs >>= \case
+          Word Empty -> pure $ Word (pure symbol)
+          Word ys@(_ :|> y) -> do
+            guard (not (reduces symbol y))
+            pure $ Word (ys :|> symbol)
 
 instance Eq a => Monoid (FG a) where
   mempty = Word (mempty)
@@ -155,8 +170,12 @@ invertSymbol = \case
 instance Eq a => Group (FG a) where
   invert (Word xs) = Word $ invertSymbol <$> reverse xs
 
-mkImage :: forall m px. (Pixel px, Show m, Monoid m, Ord m)
-        => [m] -> (m -> px) -> Image px
+mkImage ::
+  forall m px.
+  (Pixel px, Show m, Monoid m, Ord m) =>
+  [m] ->
+  (m -> px) ->
+  Image px
 mkImage es toColor = generateImage pixelAt width height
   where
     width = length es
@@ -197,7 +216,7 @@ greyValue i m =
    in result
 
 greyscaled :: forall a. Ord a => [a] -> a -> PixelRGB16
-greyscaled xs x = fromMaybe (red) $ lookup x cmap
+greyscaled xs x = fromMaybe red $ lookup x cmap
   where
     len
       | null xs = 1
@@ -232,7 +251,6 @@ renderFree generators n =
     freeGroup = freeElements generators
     es = take n freeGroup
     maxLenEs = maximum (1 `ncons` fmap wordLength es)
---    (greyscaled (take (n ^ 2) (freeElements generators)))
 
 main :: IO ()
 main = do
