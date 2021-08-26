@@ -26,6 +26,7 @@ import Data.Monoid (Sum (..))
 import Data.Proxy (Proxy (Proxy))
 import Data.Sequence (Seq (..))
 import qualified Data.Sequence as Seq
+import Data.Time (diffUTCTime)
 import qualified Data.Vector as Vector
 import Data.Word (Word16)
 import GHC.Stack (HasCallStack)
@@ -249,8 +250,13 @@ render ::
   IO ()
 render name es toColor = do
   ensureDirExists
+  say $ "rendering: " ++ pack name
+  startTime <- getCurrentTime
   let image = mkImage es toColor
   writePng (pathOfName name "png") image
+  endTime <- getCurrentTime
+  let duration = endTime `diffUTCTime` startTime
+  say $ "took " ++ tshow duration ++ " while rendering " ++ pack name
 
 black, white, red :: PixelRGB16
 black = PixelRGB16 0 0 0
@@ -317,5 +323,5 @@ renderFree generators n =
 
 main :: IO ()
 main = do
-  renderFree [True, False] 20
+  renderSymLexicographic 6
   say "Done!"
