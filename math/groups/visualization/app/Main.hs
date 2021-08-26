@@ -1,11 +1,15 @@
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
@@ -18,86 +22,61 @@ import Control.Lens (itraverse)
 import Control.Monad.Logic.Class
 import Data.Group
 import Data.Monoid (Sum (..))
+import Data.Proxy (Proxy (Proxy))
 import Data.Sequence (Seq (..))
 import qualified Data.Sequence as Seq
+import qualified Data.Vector as Vector
 import Data.Word (Word16)
 import GHC.Stack (HasCallStack)
+import GHC.TypeLits (KnownNat, Nat (..), natVal)
 import System.Directory
 import Prelude (showParen, showString)
 
-perm :: HasCallStack => [Int] -> Sn
+-- | Represents the symmetric group on n elements. The Vector must be a
+-- permuation on n elements. i.e. a list of length n with elements precisely
+-- [0 .. n - 1]
+newtype Sym (n :: Nat) = UnsafePermutation {getPermutation :: Vector Int}
+  deriving (Eq, Ord)
+
+instance Show (Sym n) where
+  showsPrec p xs =
+    showParen (p > 10) $
+      showString "perm " . showsPrec 11 (toList (getPermutation xs))
+
+perm :: forall n. KnownNat n => [Int] -> Maybe (Sym n)
 perm xs
-  | not isValid = error "invalid indices specified for permutation"
-  | otherwise = Sigma (\i -> unwrap $ lookup i m) (Just len)
+  | len == n && all ((&&) <$> (< n) <*> (>= 0)) xs = Just $ UnsafePermutation v
+  | otherwise = Nothing
   where
-    isValid = all (\x -> x < len && x >= 0) xs && ordNub xs == xs
-    unwrap :: HasCallStack => Maybe a -> a
-    unwrap = fromMaybe (error "invalid index for permutation")
-    m :: IntMap Int
-    m = mapFromList $ [0 .. l] `zip` xs
-    l = len - 1
-    len = length xs
+    v = Vector.fromList xs
+    len = length v
+    n = fromInteger (natVal (Proxy @n))
 
-data Sn = Sigma
-  { sigma :: Int -> Int,
-    n :: Maybe Int
-  }
+permEx :: (KnownNat n, HasCallStack) => [Int] -> Sym n
+permEx = fromMaybe ex . perm
+  where
+    ex = error "permutation doesn't match invariant"
 
-getPerm :: Sn -> [Int]
-getPerm Sigma {..} =
-  let r = sigma <$> [0 .. fromMaybe 0 n - 1]
-   in if isJust $
-        foldl'
-          ( \a x -> case a of
-              Just x' | x == x' -> Just $ x + 1
-              _ -> Nothing
-          )
-          (Just 0)
-          r
-        then []
-        else r
+getPerm :: Sym n -> [Int]
+getPerm = toList . getPermutation
 
-instance Show Sn where
-  showsPrec p = \case
-    Sigma {n = Nothing, ..} -> showString "identity"
-    e@Sigma {n = Just n, ..}
-      | e == mempty -> showString "identity"
-      | otherwise ->
-        showParen (p > 10) $
-          showString "perm " . showsPrec 11 (fmap sigma [0 .. (n - 1)])
+instance Semigroup (Sym n) where
+  xs <> ys = UnsafePermutation $ fmap (indexEx (getPermutation xs)) (getPermutation ys)
 
-instance Semigroup Sn where
-  Sigma {..} <> Sigma {sigma = sigma', n = n'}
-    | isJust n && isJust n' && n /= n' = error "can't multiply elements of uneven length"
-    | otherwise = Sigma (sigma . sigma') (n <|> n')
+instance KnownNat n => Monoid (Sym n) where
+  mempty = permEx [0 .. fromInteger (natVal (Proxy @n)) - 1]
 
-instance Monoid Sn where
-  mempty = Sigma id Nothing
+instance KnownNat n => Group (Sym n) where
+  invert =
+    UnsafePermutation
+      . fmap fst
+      . sortOn snd
+      . zip (getPermutation (mempty :: Sym n))
+      . getPermutation
 
-instance Group Sn where
-  invert = \case
-    e@Sigma {n = Nothing} -> e
-    Sigma {n = Just n, ..} ->
-      perm
-        . fmap fst
-        . sortOn snd
-        $ [0 .. n - 1] `zip` fmap sigma [0 .. n - 1]
-
-instance Eq Sn where
-  Sigma {n = Just n, ..} == Sigma {n = Just n', sigma = sigma'}
-    | n /= n' = error "can't compare elements of uneven length"
-    | otherwise = fmap sigma [0 .. n -1] == fmap sigma' [0 .. n -1]
-  Sigma {n = Nothing} == Sigma {n = Nothing} = True
-  Sigma {n = Nothing} == Sigma {n = Just n, sigma = sigma} =
-    fmap sigma [0 .. n -1] == [0 .. n -1]
-  Sigma {n = Just n, sigma = sigma} == Sigma {n = Nothing} =
-    fmap sigma [0 .. n -1] == [0 .. n -1]
-
-instance Ord Sn where
-  compare = compare `on` getPerm
-
-snElems :: Int -> [Sn]
-snElems n = perm <$> permutations [0 .. n]
+symmetricGroupElements :: forall n. KnownNat n => [Sym n]
+symmetricGroupElements =
+  permEx <$> permutations [0 .. fromInteger (natVal (Proxy @n)) - 1]
 
 data Z2 = Zero | One
   deriving (Show, Eq, Ord)
@@ -231,11 +210,6 @@ greyscaled xs x = fromMaybe red $ lookup x cmap
 
 gradedColoring :: Int -> FG a -> PixelRGB16
 gradedColoring maxLength x = greyValue (wordLength x) maxLength
-
-renderSnLexicographic :: Int -> IO ()
-renderSnLexicographic n =
-  let es = sort $ snElems n
-   in render ("S" ++ show n ++ "-LexicographicOrder") es (greyscaled es)
 
 renderZ :: Integer -> IO ()
 renderZ n =
