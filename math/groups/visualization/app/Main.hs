@@ -12,6 +12,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 module Main where
@@ -229,7 +230,7 @@ mkImage ::
   [m] ->
   (m -> px) ->
   Image px
-mkImage es toColor = generateImage pixelAt width height
+mkImage (Vector.fromList -> es) toColor = generateImage pixelAt width height
   where
     width = length es
     height = width
