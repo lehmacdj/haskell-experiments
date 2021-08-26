@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -28,7 +29,7 @@ import qualified Data.Sequence as Seq
 import qualified Data.Vector as Vector
 import Data.Word (Word16)
 import GHC.Stack (HasCallStack)
-import GHC.TypeLits (KnownNat, Nat (..), natVal)
+import GHC.TypeLits (KnownNat, Nat (..), SomeNat (..), natVal, someNatVal)
 import System.Directory
 import Prelude (showParen, showString)
 
@@ -42,6 +43,75 @@ instance Show (Sym n) where
   showsPrec p xs =
     showParen (p > 10) $
       showString "perm " . showsPrec 11 (toList (getPermutation xs))
+
+-- | A representation of a number in the Factorial Number System where
+-- the first element of the list is the most significant digit and subsequent
+-- digits are less significant
+type FactorialDigitRep n = [n]
+
+toFactorialNumberSystem :: (Integral n, Num n) => n -> FactorialDigitRep n
+toFactorialNumberSystem = go 1 []
+  where
+    go !d rep !n =
+      let (!q, !r) = n `divMod` d
+       in if q == 0
+            then r : rep
+            else go (d + 1) (r : rep) q
+
+fromFactorialNumberSystem :: Num n => FactorialDigitRep n -> n
+fromFactorialNumberSystem = go 1 1 0 . reverse
+  where
+    go _ _ !res [] = res
+    go !kn !fact !res (d : ds) =
+      go (kn + 1) (kn * fact) (res + fact * d) ds
+
+padToLength :: Num n => Int -> FactorialDigitRep n -> FactorialDigitRep n
+padToLength len xs = replicate amountToPad 0 ++ xs
+  where
+    amountToPad = max 0 (len - length xs)
+
+-- | Compute a Lehmer code from a permutation of [0..n-1]
+lehmerEncode :: [Int] -> [Int]
+lehmerEncode = \case
+  [] -> []
+  (x : xs) -> x : lehmerEncode (map (predIfGt x) xs)
+  where
+    predIfGt !k !n
+      | n > k = n - 1
+      | otherwise = n
+
+-- | Compute a permutation of [0..n-1] from a Lehmer code
+lehmerDecode :: [Int] -> [Int]
+lehmerDecode = foldr (\x acc -> x : map (succIfGe x) acc) []
+  where
+    succIfGe !k !n
+      | n >= k = n + 1
+      | otherwise = n
+
+-- | Given by the total ordering derived from the lexicographic order.
+-- Uses procedure roughly outlined by
+-- https://en.wikipedia.org/wiki/Permutation#Numbering_permutations
+-- e.g.
+-- fromEnum (perm [0, 1, 2]) = 0
+-- fromEnum (perm [0, 2, 1]) = 1
+-- fromEnum (perm [1, 0, 2]) = 2
+-- fromEnum (perm [1, 2, 0]) = 3
+-- fromEnum (perm [2, 0, 1]) = 4
+-- fromEnum (perm [2, 1, 0]) = 5
+instance forall n. KnownNat n => Enum (Sym n) where
+  toEnum =
+    permEx
+      . lehmerDecode
+      . padToLength (fromInteger (natVal (Proxy @n)))
+      . toFactorialNumberSystem
+  fromEnum = fromFactorialNumberSystem . lehmerEncode . toList . getPermutation
+
+-- | Given by the total ordering derived from the lexicographic order.
+instance KnownNat n => Bounded (Sym n) where
+  minBound = mempty
+  maxBound =
+    let largestIx = fromInteger (natVal (Proxy @n)) - 1
+     in permEx [largestIx, largestIx - 1 .. 0]
 
 perm :: forall n. KnownNat n => [Int] -> Maybe (Sym n)
 perm xs
@@ -187,36 +257,52 @@ black = PixelRGB16 0 0 0
 white = PixelRGB16 maxBound maxBound maxBound
 red = PixelRGB16 maxBound 0 0
 
-greyValue :: Int -> Int -> PixelRGB16
-greyValue i m =
+-- | Color based on a metric. The metric should return a value between 0 and
+-- max
+colorViaMetric :: (Int -> Int -> px) -> (a -> Int) -> Int -> a -> px
+colorViaMetric toPixel toInt m v = toPixel (toInt v) m
+
+greyscaleViaMetric :: (a -> Int) -> Int -> a -> PixelRGB16
+greyscaleViaMetric = colorViaMetric greySpectrum
+
+colorViaBoundedEnum :: forall a px. (Enum a, Bounded a) => (Int -> Int -> px) -> a -> px
+colorViaBoundedEnum toPixel = colorViaMetric toPixel toInt (toInt (maxBound @a))
+  where
+    toInt x = fromEnum x - fromEnum (minBound @a)
+
+greyscaleViaBoundedEnum :: (Enum a, Bounded a) => a -> PixelRGB16
+greyscaleViaBoundedEnum = colorViaBoundedEnum greySpectrum
+
+-- | Produce a grey color based on the position between 0 and a maximum value.
+-- If the provided value is out of bounds, the color is red.
+greySpectrum :: Int -> Int -> PixelRGB16
+greySpectrum i m =
   let frac = fromIntegral i / fromIntegral m
       full = fromIntegral (maxBound :: Word16) :: Double
       v = round (frac * full)
       result
-        | frac > 1 = red
+        | frac > 1 || frac < 0 = red
         | otherwise = PixelRGB16 v v v
    in result
 
-greyscaled :: forall a. Ord a => [a] -> a -> PixelRGB16
-greyscaled xs x = fromMaybe red $ lookup x cmap
-  where
-    len
-      | null xs = 1
-      | otherwise = length xs - 1
-    cmap :: Map a PixelRGB16
-    cmap =
-      mapFromList . runIdentity $
-        itraverse (\i x -> Identity (x, greyValue i len)) xs
-
 gradedColoring :: Int -> FG a -> PixelRGB16
-gradedColoring maxLength x = greyValue (wordLength x) maxLength
+gradedColoring = greyscaleViaMetric wordLength
 
 renderZ :: Integer -> IO ()
 renderZ n =
   render @Z
     ("First" ++ show n ++ "-Z")
     (Sum <$> [0 .. n - 1])
-    (greyscaled (Sum <$> [0 .. 2 * n]))
+    (greyscaleViaMetric (fromInteger . getSum) (fromInteger (2 * n)))
+
+renderSymLexicographic :: Integer -> IO ()
+renderSymLexicographic n = case someNatVal n of
+  Just (SomeNat (_ :: Proxy n)) ->
+    render @(Sym n)
+      ("Sym-" ++ show n ++ "-Lexicographic")
+      (sort symmetricGroupElements)
+      greyscaleViaBoundedEnum
+  Nothing -> error "invalid negative number provided as size of symmetric group"
 
 renderFree :: (Show a, Ord a) => [a] -> Int -> IO ()
 renderFree generators n =
