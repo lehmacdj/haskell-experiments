@@ -2,3 +2,6 @@ images/
 *.cabal
 # output files produced by profiling
 visualization.*
+# also ignore other svg files; these are probably saved profiling results from
+# specific runs
+*.svg
