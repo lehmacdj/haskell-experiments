@@ -4,6 +4,7 @@ build-depends:
   , base ==4.14.3.0
   -- ^ for pinning ghc-8.10.7
   , haskeline ==0.8.2
+  , terminfo ==0.4.1.5
 -}
 
 -- | Simple example program for demo-ing problems with haskeline line editing on
