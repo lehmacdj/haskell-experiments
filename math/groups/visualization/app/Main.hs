@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DataKinds #-}
@@ -14,7 +15,6 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Main where
 
@@ -40,7 +40,7 @@ intValue :: forall n. KnownNat n => Int
 intValue = fromInteger (natVal (Proxy @n))
 
 mtimes :: (Monoid m, Integral b) => b -> m -> m
-mtimes k a  
+mtimes k a
   | (k == 0) = mempty
   | otherwise = stimes k a
 
@@ -167,12 +167,12 @@ symmetricGroupElements =
 
 -- | Representation of D_2n in S_n
 dihedralGroupElements :: forall n. KnownNat n => [Sym n]
-dihedralGroupElements = 
+dihedralGroupElements =
   cyclicSubgroup ++ map (<> s) cyclicSubgroup
-    where
-      cyclicSubgroup = [gtimes i r | i <- [0 .. intValue @n - 1]]
-      r = permEx $ [1 .. intValue @n - 1] ++ [0]
-      s = permEx . reverse $ [0 .. intValue @n - 1]
+  where
+    cyclicSubgroup = [gtimes i r | i <- [0 .. intValue @n - 1]]
+    r = permEx $ [1 .. intValue @n - 1] ++ [0]
+    s = permEx . reverse $ [0 .. intValue @n - 1]
 
 data Z2 = Zero | One
   deriving (Show, Eq, Ord)
@@ -338,10 +338,10 @@ renderSymLexicographic n = case someNatVal n of
 renderDihedral :: Integer -> IO ()
 renderDihedral n
   | n `mod` 2 == 1 = error "the dihedral group is only defined for even n"
-  | otherwise = 
-    let m = n `iv` 2 
+  | otherwise =
+    let m = n `div` 2
      in case someNatVal m of
-          Just (SomeNat (_ :: Proxy m)) -> 
+          Just (SomeNat (_ :: Proxy m)) ->
             render @(Sym m)
               ("Dihedral-" ++ show n)
               (sort dihedralGroupElements)
