@@ -349,6 +349,12 @@ red = PixelRGB16 maxBound 0 0
 colorViaMetric :: (Int -> Int -> px) -> (a -> Int) -> Int -> a -> px
 colorViaMetric toPixel toInt m v = toPixel (toInt v) m
 
+colorVia2Metrics :: (Double -> Double -> px) -> Int -> a -> px
+colorVia2Metrics = undefined
+
+colorVia3Metrics :: (Double -> Double -> Double -> px) -> Int -> a -> px
+colorVia3Metrics = undefined
+
 greyscaleViaMetric :: (a -> Int) -> Int -> a -> PixelRGB16
 greyscaleViaMetric = colorViaMetric greySpectrum
 
@@ -371,6 +377,9 @@ greySpectrum i m =
         | frac > 1 || frac < 0 = red
         | otherwise = PixelRGB16 v v v
    in result
+
+hsvSpectrum :: Double -> Double -> Double -> PixelHSV16
+hsvSpectrum = undefined
 
 gradedColoring :: Int -> FG a -> PixelRGB16
 gradedColoring = greyscaleViaMetric wordLength
