@@ -6,12 +6,9 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -41,12 +38,12 @@ intValue = fromInteger (natVal (Proxy @n))
 
 mtimes :: (Monoid m, Integral b) => b -> m -> m
 mtimes k a
-  | (k == 0) = mempty
+  | k == 0 = mempty
   | otherwise = stimes k a
 
 gtimes :: (Group g, Integral b) => b -> g -> g
 gtimes k a
-  | (k < 0) = stimes (-k) (invert a)
+  | k < 0 = stimes (-k) (invert a)
   | otherwise = mtimes k a
 
 -- | Represents the symmetric group on n elements. The Vector must be a
