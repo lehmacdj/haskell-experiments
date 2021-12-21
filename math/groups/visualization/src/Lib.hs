@@ -16,6 +16,9 @@ import Data.Word (Word16)
 import GHC.Stack (HasCallStack)
 import GHC.TypeLits (KnownNat, Nat (..), SomeNat (..), natVal, someNatVal)
 import System.Directory
+import Test.Hspec.Expectations
+import Test.Tasty
+import Test.Tasty.HUnit
 import Prelude (showParen, showString)
 
 intValue :: forall n. KnownNat n => Int
@@ -28,8 +31,13 @@ mtimes k a
 
 gtimes :: (Group g, Integral b) => b -> g -> g
 gtimes k a
-  | k < 0 = stimes (-k) (invert a)
+  | k < 0 = stimes (- k) (invert a)
   | otherwise = mtimes k a
+
+order :: (Group g, Eq g) => g -> Int
+order a = 1 + (length $ takeWhile (/= mempty) powers)
+  where
+    powers = [gtimes k a | k <- [1 ..]]
 
 -- | Represents the symmetric group on n elements. The Vector must be a
 -- permuation on n elements. i.e. a list of length n with elements precisely
@@ -147,12 +155,28 @@ symmetricGroupElements :: forall n. KnownNat n => [Sym n]
 symmetricGroupElements =
   permEx <$> permutations [0 .. intValue @n - 1]
 
-
 r :: forall n. KnownNat n => Sym n
 r = permEx $ [1 .. intValue @n - 1] ++ [0]
 
 s :: forall n. KnownNat n => Sym n
 s = permEx . reverse $ [0 .. intValue @n - 1]
+
+-- | Group Presentation of the Dihedral Group
+test_dihedral_group_has_presentation :: TestTree
+test_dihedral_group_has_presentation =
+  testGroup
+    "dihedral group has presentation"
+    [ gtimes 63 (r @63) `equals` mempty,
+      order (r @63) `equals` 63,
+      order (s @63) `equals` 2,
+      (r @63 <> s @63 <> r @63 <> s @63) `equals` mempty,
+      gtimes 64 (r @64) `equals` mempty,
+      order (r @64) `equals` 64,
+      order (s @64) `equals` 2,
+      (r @64 <> s @64 <> r @64 <> s @64) `equals` mempty
+    ]
+  where
+    a `equals` b = testCase (show a ++ " = " ++ show b) (a `shouldBe` b)
 
 -- | Representation of D_2n in S_n
 dihedralGroupElements :: forall n. KnownNat n => [Sym n]
