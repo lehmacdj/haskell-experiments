@@ -6,15 +6,19 @@ import Codec.Picture.Types (Pixel16 (..))
 import Control.Lens (itraverse)
 import Control.Monad.Logic.Class
 import Data.Group
-import Data.Monoid (Sum (..))
+import Data.Modular
+import Data.Monoid (Product (..), Sum (..))
 import Data.Proxy (Proxy (Proxy))
 import Data.Sequence (Seq (..))
 import qualified Data.Sequence as Seq
 import Data.Time (diffUTCTime)
+import Data.Type.Equality
 import qualified Data.Vector as Vector
 import Data.Word (Word16)
 import GHC.Stack (HasCallStack)
 import GHC.TypeLits (KnownNat, Nat (..), SomeNat (..), natVal, someNatVal)
+import GHC.TypeLits.Compare ((%<=?), (:<=?) (LE, NLE))
+import GHC.TypeLits.Witnesses (SNat (SNat))
 import System.Directory
 import Test.Hspec.Expectations
 import Test.Tasty
@@ -38,6 +42,47 @@ order :: (Group g, Eq g) => g -> Int
 order a = 1 + (length $ takeWhile (/= mempty) powers)
   where
     powers = [gtimes k a | k <- [1 ..]]
+
+newtype CyclicGroup (n :: Nat) = CyclicElem (Integer / n)
+
+instance Show (CyclicGroup n) where
+  show (CyclicElem a) = show a
+
+instance Eq (CyclicGroup n) where
+  (CyclicElem a) == (CyclicElem b) = (a == b)
+
+instance Ord (CyclicGroup n) where
+  (CyclicElem a) `compare` (CyclicElem b) = (compare a b)
+
+instance Modulus n => Semigroup (CyclicGroup n) where
+  (CyclicElem a) <> (CyclicElem b) = CyclicElem (a + b)
+
+instance Modulus n => Monoid (CyclicGroup n) where
+  mempty = CyclicElem 0
+
+instance Modulus n => Group (CyclicGroup n) where
+  invert (CyclicElem a) = CyclicElem (- a)
+
+instance Modulus n => Enum (CyclicGroup n) where
+  toEnum k = CyclicElem $ toEnum k
+  fromEnum (CyclicElem a) = fromEnum a
+
+instance Modulus n => Bounded (CyclicGroup n) where
+  maxBound = CyclicElem maxBound
+  minBound = CyclicElem minBound
+
+newtype ModularUnits (n :: Nat) = UnsafeMUnitElem (Integer / n)
+  deriving newtype (Show, Eq, Ord)
+
+deriving via Product (Integer / n) instance Modulus n => Semigroup (ModularUnits n)
+
+deriving via Product (Integer / n) instance Modulus n => Monoid (ModularUnits n)
+
+deriving via Product (Integer / n) instance Modulus n => Group (ModularUnits n)
+
+instance Modulus n => Bounded (ModularUnits n) where
+  minBound = UnsafeMUnitElem 1
+  maxBound = UnsafeMUnitElem maxBound
 
 -- | Represents the symmetric group on n elements. The Vector must be a
 -- permuation on n elements. i.e. a list of length n with elements precisely
@@ -336,6 +381,17 @@ renderZ n =
     ("First" ++ show n ++ "-Z")
     (Sum <$> [0 .. n - 1])
     (greyscaleViaMetric (fromInteger . getSum) (fromInteger (2 * n)))
+
+renderCyclic :: Integer -> IO ()
+renderCyclic n = case someNatVal n of
+  Just (SomeNat (_ :: Proxy n)) -> case SNat @1 %<=? SNat @n of
+    LE Refl ->
+      render @(CyclicGroup n)
+        ("Cyclic-" ++ show n)
+        ([CyclicElem k | k <- [0 .. fromIntegral n - 1]])
+        greyscaleViaBoundedEnum
+    NLE _ _ -> error "modulus is less than or equal to 0"
+  Nothing -> error "invalid negative number provided as size of cyclic group"
 
 renderSymLexicographic :: Integer -> IO ()
 renderSymLexicographic n = case someNatVal n of

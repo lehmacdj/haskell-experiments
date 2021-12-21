@@ -3,11 +3,18 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: modular-arithmetic-2.0.0.1@sha256:afc4fc1f503cf0e21eee9eec1b433d010603aadccf9d6590287a175bdc8cfb1b,1606
+    pantry-tree:
+      size: 383
+      sha256: d6ed2dcf3d49c4cd8f72b6e965dec2e47ab1361ad9795ecc952de941396a0f0f
+  original:
+    hackage: modular-arithmetic-2.0.0.1@sha256:afc4fc1f503cf0e21eee9eec1b433d010603aadccf9d6590287a175bdc8cfb1b,1606
 snapshots:
 - completed:
-    sha256: 63539429076b7ebbab6daa7656cfb079393bf644971156dc349d7c0453694ac2
     size: 586296
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/18.yaml
+    sha256: 63539429076b7ebbab6daa7656cfb079393bf644971156dc349d7c0453694ac2
   original:
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/18.yaml

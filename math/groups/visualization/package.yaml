@@ -28,7 +28,9 @@ dependencies:
 - JuicyPixels
 - lens
 - logict
+- modular-arithmetic
 - time
+- typelits-witnesses
 - vector
 # test dependencies
 - tasty-discover
@@ -44,14 +46,19 @@ default-extensions:
 - BangPatterns
 - BlockArguments
 - DataKinds
+- DerivingVia
+- DerivingStrategies
 - FlexibleInstances
 - GADTs
+- GeneralizedNewtypeDeriving
 - KindSignatures
 - LambdaCase
 - OverloadedStrings
 - RankNTypes
 - ScopedTypeVariables
+- StandaloneDeriving
 - TypeApplications
+- TypeOperators
 - ViewPatterns
 - NoImplicitPrelude
 
