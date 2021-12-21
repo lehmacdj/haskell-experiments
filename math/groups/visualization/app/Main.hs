@@ -14,6 +14,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Main where
 
@@ -34,6 +35,19 @@ import GHC.Stack (HasCallStack)
 import GHC.TypeLits (KnownNat, Nat (..), SomeNat (..), natVal, someNatVal)
 import System.Directory
 import Prelude (showParen, showString)
+
+intValue :: forall n. KnownNat n => Int
+intValue = fromInteger (natVal (Proxy @n))
+
+mtimes :: (Monoid m, Integral b) => b -> m -> m
+mtimes k a  
+  | (k == 0) = mempty
+  | otherwise = stimes k a
+
+gtimes :: (Group g, Integral b) => b -> g -> g
+gtimes k a
+  | (k < 0) = stimes (-k) (invert a)
+  | otherwise = mtimes k a
 
 -- | Represents the symmetric group on n elements. The Vector must be a
 -- permuation on n elements. i.e. a list of length n with elements precisely
@@ -104,7 +118,7 @@ instance forall n. KnownNat n => Enum (Sym n) where
   toEnum =
     permEx
       . lehmerDecode
-      . padToLength (fromInteger (natVal (Proxy @n)))
+      . padToLength (intValue @n)
       . toFactorialNumberSystem
   fromEnum = fromFactorialNumberSystem . lehmerEncode . toList . getPermutation
 
@@ -112,9 +126,10 @@ instance forall n. KnownNat n => Enum (Sym n) where
 instance KnownNat n => Bounded (Sym n) where
   minBound = mempty
   maxBound =
-    let largestIx = fromInteger (natVal (Proxy @n)) - 1
+    let largestIx = intValue @n - 1
      in permEx [largestIx, largestIx - 1 .. 0]
 
+-- | Not safe, doesn't check uniqueness of elements
 perm :: forall n. KnownNat n => [Int] -> Maybe (Sym n)
 perm xs
   | len == n && all ((&&) <$> (< n) <*> (>= 0)) xs = Just $ UnsafePermutation v
@@ -122,12 +137,12 @@ perm xs
   where
     v = Vector.fromList xs
     len = length v
-    n = fromInteger (natVal (Proxy @n))
+    n = intValue @n
 
 permEx :: (KnownNat n, HasCallStack) => [Int] -> Sym n
-permEx = fromMaybe ex . perm
+permEx as = fromMaybe ex . perm $ as
   where
-    ex = error "permutation doesn't match invariant"
+    ex = error $ "permutation " ++ show as ++ " doesn't match invariant"
 
 getPerm :: Sym n -> [Int]
 getPerm = toList . getPermutation
@@ -136,7 +151,7 @@ instance Semigroup (Sym n) where
   xs <> ys = UnsafePermutation $ fmap (indexEx (getPermutation xs)) (getPermutation ys)
 
 instance KnownNat n => Monoid (Sym n) where
-  mempty = permEx [0 .. fromInteger (natVal (Proxy @n)) - 1]
+  mempty = permEx [0 .. intValue @n - 1]
 
 instance KnownNat n => Group (Sym n) where
   invert =
@@ -148,7 +163,16 @@ instance KnownNat n => Group (Sym n) where
 
 symmetricGroupElements :: forall n. KnownNat n => [Sym n]
 symmetricGroupElements =
-  permEx <$> permutations [0 .. fromInteger (natVal (Proxy @n)) - 1]
+  permEx <$> permutations [0 .. intValue @n - 1]
+
+-- | Representation of D_2n in S_n
+dihedralGroupElements :: forall n. KnownNat n => [Sym n]
+dihedralGroupElements = 
+  cyclicSubgroup ++ map (<> s) cyclicSubgroup
+    where
+      cyclicSubgroup = [gtimes i r | i <- [0 .. intValue @n - 1]]
+      r = permEx $ [1 .. intValue @n - 1] ++ [0]
+      s = permEx . reverse $ [0 .. intValue @n - 1]
 
 data Z2 = Zero | One
   deriving (Show, Eq, Ord)
@@ -198,7 +222,7 @@ instance Eq a => Semigroup (FG a) where
       | otherwise -> Word (xs' <> ys')
   Word xs <> Word ys = Word (xs <> ys)
 
--- | Given a list of symbols; generate all words that draw from it.
+-- | Given a list of symbls; generate all words that draw from it.
 freeElements :: Eq a => [a] -> [FG a]
 freeElements xs =
   Word mempty : do
@@ -311,6 +335,19 @@ renderSymLexicographic n = case someNatVal n of
       greyscaleViaBoundedEnum
   Nothing -> error "invalid negative number provided as size of symmetric group"
 
+renderDihedral :: Integer -> IO ()
+renderDihedral n
+  | n `mod` 2 == 1 = error "the dihedral group is only defined for even n"
+  | otherwise = 
+    let m = n `iv` 2 
+     in case someNatVal m of
+          Just (SomeNat (_ :: Proxy m)) -> 
+            render @(Sym m)
+              ("Dihedral-" ++ show n)
+              (sort dihedralGroupElements)
+              greyscaleViaBoundedEnum
+          Nothing -> error "invalid negative number provided as size of symmetric group"
+
 renderFree :: (Show a, Ord a) => [a] -> Int -> IO ()
 renderFree generators n =
   render
@@ -324,5 +361,5 @@ renderFree generators n =
 
 main :: IO ()
 main = do
-  renderSymLexicographic 6
+  renderDihedral 500
   say "Done!"
