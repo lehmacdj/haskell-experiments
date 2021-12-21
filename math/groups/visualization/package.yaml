@@ -30,6 +30,14 @@ dependencies:
 - logict
 - time
 - vector
+# test dependencies
+- tasty-discover
+- tasty
+- tasty-hunit
+- hspec-expectations
+- tasty-quickcheck
+- tasty-hedgehog
+- hedgehog
 
 library:
   source-dirs: src
@@ -48,7 +56,7 @@ executables:
 
 tests:
   visualization-test:
-    main:                Spec.hs
+    main:                Main.hs
     source-dirs:         test
     ghc-options:
     - -threaded
