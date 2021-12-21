@@ -39,6 +39,22 @@ dependencies:
 - tasty-hedgehog
 - hedgehog
 
+default-extensions:
+- AllowAmbiguousTypes
+- BangPatterns
+- BlockArguments
+- DataKinds
+- FlexibleInstances
+- GADTs
+- KindSignatures
+- LambdaCase
+- OverloadedStrings
+- RankNTypes
+- ScopedTypeVariables
+- TypeApplications
+- ViewPatterns
+- NoImplicitPrelude
+
 library:
   source-dirs: src
 

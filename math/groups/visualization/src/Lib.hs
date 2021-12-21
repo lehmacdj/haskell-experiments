@@ -1,18 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE BlockArguments #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-
 module Lib where
 
 import ClassyPrelude
@@ -162,14 +147,19 @@ symmetricGroupElements :: forall n. KnownNat n => [Sym n]
 symmetricGroupElements =
   permEx <$> permutations [0 .. intValue @n - 1]
 
+
+r :: forall n. KnownNat n => Sym n
+r = permEx $ [1 .. intValue @n - 1] ++ [0]
+
+s :: forall n. KnownNat n => Sym n
+s = permEx . reverse $ [0 .. intValue @n - 1]
+
 -- | Representation of D_2n in S_n
 dihedralGroupElements :: forall n. KnownNat n => [Sym n]
 dihedralGroupElements =
-  cyclicSubgroup ++ map (<> s) cyclicSubgroup
+  cyclicSubgroup ++ map (<> (s @n)) cyclicSubgroup
   where
-    cyclicSubgroup = [gtimes i r | i <- [0 .. intValue @n - 1]]
-    r = permEx $ [1 .. intValue @n - 1] ++ [0]
-    s = permEx . reverse $ [0 .. intValue @n - 1]
+    cyclicSubgroup = [gtimes i (r @n) | i <- [0 .. intValue @n - 1]]
 
 data Z2 = Zero | One
   deriving (Show, Eq, Ord)
