@@ -1,7 +1,7 @@
 #!/usr/bin/env stack
 {- stack
   script
-  --resolver lts-16.6
+  --resolver lts-18.18
   --package random
   --package containers
 -}
