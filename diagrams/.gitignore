@@ -1,3 +1,4 @@
 # Ignore the out directory, this is where images created by programs in this
 # folder are put.
 out/
+images/
