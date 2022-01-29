@@ -1,15 +1,21 @@
-#!/usr/bin/env stack
-{- stack ghci
-    --resolver lts-18.18
-    --package generic-lens
-    --package lens
-    --package random
-    --package mtl
-    --package classy-prelude
- -}
-
+#!/usr/bin/env cabal
+{- cabal:
+with-compiler: ghc-8.10.7
+build-depends:
+  , base
+  , classy-prelude
+  , diagrams-contrib
+  , diagrams-core
+  , diagrams-lib
+  , diagrams-svg
+  , generic-lens
+  , lens
+  , mtl
+  , random
+-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedLabels #-}
@@ -28,10 +34,9 @@ import ClassyPrelude
 import Control.Lens
 import Control.Monad.State.Strict
 import Data.Generics.Labels
--- import Diagrams.Prelude
-
 import Data.Maybe
 import Data.Tuple
+import Diagrams.Prelude qualified as D
 import GHC.Generics (Generic)
 import System.Random
 
@@ -91,7 +96,7 @@ camelsAtLocation p =
 
 -- | The first location that counts as past the finish line.
 finishLine :: Int
-finishLine = undefined
+finishLine = 16
 
 -- -- | Slow shuffle, that's good enough for n = 5 (our usecase) while being very
 -- -- simple
@@ -165,4 +170,7 @@ advanceCamel c n = execState do
     camelPos c . #camelsAbove <>= movedStack
 
 main :: IO ()
-main = undefined
+main = do
+  (board, _) <- randomStartingBoard <$> getStdGen
+  print board
+  print $ advanceCamel White 1 board
