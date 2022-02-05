@@ -9,6 +9,8 @@ build-depends:
 
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+-- this option is useful for seeing why we end up with the FromJSON constraint
+-- {-# OPTIONS_GHC -ddump-cs-trace #-}
 
 module Main where
 
