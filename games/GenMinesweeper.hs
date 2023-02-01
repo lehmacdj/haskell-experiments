@@ -24,7 +24,7 @@ data Tile
 
 -- | the height and width of the generated board
 height, width :: Int
-height = 10
+height = 9
 width = 10
 
 -- | check if width/height is in bounds
